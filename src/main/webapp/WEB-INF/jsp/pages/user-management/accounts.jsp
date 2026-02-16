@@ -1,1548 +1,781 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/accounts.css">
 <main class="app-wrapper">
     <div class="container-fluid">
+        
+        <!-- Breadcrumb -->
+        <!-- <div class="main-breadcrumb d-flex align-items-center justify-content-between my-4">
+            <h2 class="breadcrumb-title mb-0 fs-14">User Management</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb justify-content-end mb-0">
+                    <li class="breadcrumb-item"><a href="javascript:void(0)">System</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">User Accounts</li>
+                </ol>
+            </nav>
+        </div> -->
 
-        <div class="main-breadcrumb d-flex align-items-center my-3 position-relative">
-            <h2 class="breadcrumb-title mb-0 flex-grow-1 fs-14">User Accounts</h2>
-            <div class="flex-shrink-0">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb justify-content-end mb-0">
-                        <li class="breadcrumb-item"><a href="javascript:void(0)">User Management</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Accounts</li>
-                    </ol>
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="header-content">
+                <h1 class="page-title mb-2">User Accounts</h1>
+                <p class="page-subtitle text-muted mb-0">Manage system users, permissions, and access controls</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary d-flex align-items-center gap-2" onclick="showUserModal()">
+                    <i class="bi bi-person-plus"></i>
+                    <span>Add User</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="stat-card d-flex align-items-start">
+                    <div class="stat-icon" style="color: #6366f1;">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-content ms-3">
+                        <div class="stat-number" id="totalCount">0</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="stat-card d-flex align-items-start">
+                    <div class="stat-icon" style="color: #10b981;">
+                        <i class="bi bi-person-check"></i>
+                    </div>
+                    <div class="stat-content ms-3">
+                        <div class="stat-number" id="activeCount">0</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="stat-card d-flex align-items-start">
+                    <div class="stat-icon" style="color: #ef4444;">
+                        <i class="bi bi-person-x"></i>
+                    </div>
+                    <div class="stat-content ms-3">
+                        <div class="stat-number" id="inactiveCount">0</div>
+                        <div class="stat-label">Deactivated</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-6">
+                <div class="stat-card d-flex align-items-start">
+                    <div class="stat-icon" style="color: #8b5cf6;">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <div class="stat-content ms-3">
+                        <div class="stat-number" id="adminCount">0</div>
+                        <div class="stat-label">Administrators</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="card filter-card mb-4">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-xl-4 col-lg-6">
+                        <label class="form-label">Search Users</label>
+                        <div class="search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="users_search" class="form-control search-input" placeholder="Search by name, username, email, or phone...">
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-3">
+                        <label class="form-label">Status</label>
+                        <select id="filter_status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3">
+                        <label class="form-label">Role</label>
+                        <select id="filter_role" class="form-select">
+                            <option value="">All Roles</option>
+                            <option value="admin">Administrator</option>
+                            <option value="manager">Manager</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3">
+                        <label class="form-label">Organization</label>
+                        <select id="filter_organization" class="form-select">
+                            <option value="">All Organizations</option>
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3">
+                        <div class="d-flex gap-2">
+                            <button id="applyFiltersBtn" class="btn btn-primary w-100">Apply</button>
+                            <button id="clearFiltersBtn" class="btn btn-outline-secondary w-100" title="Clear Filters">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+<br>
+        <!-- Main Table Card -->
+        <div class="card table-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <h4 class="card-title mb-0">All Users</h4>
+                    <p class="text-muted mb-0">Showing <span id="userCount">0</span> users</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshUsersBtn">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        Refresh
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportUsers('csv')">CSV</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportUsers('excel')">Excel</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportUsers('pdf')">PDF</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="users-datatable" class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Username</th>
+                                <th>Contact</th>
+                                <th>Role</th>
+                                <th>Organization</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="text-muted">
+                    Showing <span id="showingCount">0</span> of <span id="totalCountFooter">0</span> users
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="paginationControls">
+                        <!-- Pagination will be generated dynamically -->
+                    </ul>
                 </nav>
             </div>
         </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="row g-3 mb-2">
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="text-muted">All Accounts</div>
-                                    <div class="fs-4 fw-semibold" id="totalCount">0</div>
+
+        <!-- Quick Preview Card -->
+        <!-- <div class="card preview-card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">User Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row" id="userPreview">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="user-avatar-preview">
+                                    <img id="preview_avatar" src="${pageContext.request.contextPath}/assets/images/users/user-1.png" alt="Avatar">
                                 </div>
-                                <i class="ri-team-line fs-3 text-primary"></i>
+                                <div>
+                                    <h5 class="preview-title mb-1" id="preview_name">Select a user to preview</h5>
+                                    <div class="badge-container">
+                                        <span class="badge" id="preview_role">-</span>
+                                        <span class="badge" id="preview_status">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><small class="text-muted">Username</small></p>
+                                <p class="fw-semibold" id="preview_username">-</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><small class="text-muted">Organization</small></p>
+                                <p class="fw-semibold" id="preview_organization">-</p>
+                            </div>
+                            <div class="col-md-12">
+                                <p class="mb-1"><small class="text-muted">Email</small></p>
+                                <p class="fw-semibold" id="preview_email">-</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="text-muted">Active</div>
-                                    <div class="fs-4 fw-semibold text-success" id="activeCount">0</div>
-                                </div>
-                                <i class="ri-user-smile-line fs-3 text-success"></i>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <p class="mb-1"><small class="text-muted">Contact Information</small></p>
+                            <p class="preview-description" id="preview_contact">-</p>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><small class="text-muted">Account Created</small></p>
+                                <p class="fw-semibold" id="preview_created">-</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><small class="text-muted">Last Login</small></p>
+                                <p class="fw-semibold" id="preview_last_login">-</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-body d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="text-muted">Deactivated</div>
-                                    <div class="fs-4 fw-semibold text-danger" id="inactiveCount">0</div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div id="preview_security" class="security-features">
+                                    <small class="text-muted">No security features enabled</small>
                                 </div>
-                                <i class="ri-user-unfollow-line fs-3 text-danger"></i>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <!-- <h5 class="card-title mb-0"></h5> -->
-                        <p class="text-muted mb-4 col-8">Manage your users with this interactive DataTable. View, edit, and assign menu permissions.</p>
-                        <button class="btn btn-primary float-end" onclick="showUserModal()"><i class="mdi mdi-account-plus me-2"></i>Add User</button>
-                        <div class="mt-3">
-                            <ul class="nav nav-pills">
-                                <li class="nav-item"><a id="filterAll" class="nav-link active" href="#">All</a></li>
-                                <li class="nav-item"><a id="filterActive" class="nav-link" href="#">Active</a></li>
-                                <li class="nav-item"><a id="filterInactive" class="nav-link" href="#">Deactivated</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                     <div class="table-responsive">
-                        <table id="users-datatable" class="table table-striped dt-responsive w-100">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Phone</th>
-                                    <th>Role</th>
-                                    <th>Created At</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Data will be populated by JavaScript -->
-                            </tbody>
-                        </table>
-                       </div> 
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
     </div>
 
-    <!-- Submit Section -->
-</main>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    loadOrganizationsForSelect();
-
-    const submitButton = document.getElementById('submitUserForm');
-    const addUserForm = document.getElementById('addUserForm');
-
-    window.showUserModal = function(){
-
-        // Change modal title
-        document.getElementById('addUserModalLabel').innerHTML = 
-            'Add User';
-
-        document.getElementById('addUserForm').dataset.userId = '';
-        document.getElementById('addUserForm').dataset.isEdit = 'false';
-
-        // Change submit button text
-        // document.getElementById('submitUserForm').textContent = 'Add User';
-        document.getElementById('submitUserForm').innerHTML = '<i class="mdi mdi-content-save me-2"></i> Add User';
-
-        // Open the modal
-        const modalEl = document.getElementById('addUserModal');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        loadOrganizationsForSelect();
-        modal.show();
-        // Reset the form
-        addUserForm.reset();
-    }
-    
-    // Add event listener to the submit button
-    submitButton.addEventListener('click', function(e) {
-        e.preventDefault();
-
-        const text = submitButton.textContent;
-
-        Swal.fire({
-            title: 'Are you sure?',
-            icon: 'warning',
-            showCancelButton: true,
-            cancelButtonColor: '#d33',
-            confirmButtonText: text == 'Update User' ? 'Yes, Update it' : 'Yes, Save it'
-        }).then(function(result) {
-            if (result.isConfirmed) {
-                handleFormSubmission();
-            } else if (result.dismiss === Swal.DismissReason.cancel) {
-                Swal.fire("Cancelled", "No action performed.", "error");
-            }
-        });
-    });
-    
-    // Function to handle form submission
-    function handleFormSubmission() {
-        // Validate the form
-        if (!validateForm()) {
-            return;
-        }
-        
-        // Prepare the form data
-        const formData = prepareFormData();
-        
-        // Show loading state
-        showLoader("Processing...");
-        
-        // Submit the data (using fetch API)
-        submitFormData(formData)
-            .then(response => {
-                // console.log(response)
-                if(response.message == "SESSION_INVALID") {
-                    window.location.href = "login?session=invalid"
-                    return;
-                }
-
-                if(response.message == 'Missing required fields.') {
-                    showNotification(response.message, 'error');
-                    return;
-                }
-
-                if(response.message == 'Invalid request type.') {
-                    showNotification(response.message, 'error');
-                    return;
-                }
-
-                if(response.success == false) {
-                    showNotification(response.message, 'error');
-                    return;
-                }
-                // Handle success
-                showNotification(response.message, 'success');
-                // Close the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                modal.hide();
-                // Reset the form
-                addUserForm.reset();
-                // refresh the table
-                loadUsersForDataTable();
-            })
-            .catch(error => {
-                // Handle error
-                showNotification('Error adding user: ' + error.message, 'error');
-            })
-            .finally(() => {
-                // Reset loading state
-                hideLoader()
-            });
-    }
-    
-    // Function to validate the form
-    function validateForm() {
-        let isValid = true;
-        const requiredFields = addUserForm.querySelectorAll('[required]');
-        
-        // Check all required fields
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                highlightError(field, 'This field is required');
-            } else {
-                removeErrorHighlight(field);
-            }
-        });
-        
-        // Validate email format
-        const emailField = document.getElementById('email');
-        if (emailField.value && !isValidEmail(emailField.value)) {
-            isValid = false;
-            highlightError(emailField, 'Please enter a valid email address');
-        }
-        
-        // Validate password match
-        const passwordField = document.getElementById('password');
-        const confirmPasswordField = document.getElementById('confirm_password');
-        if (passwordField.value !== confirmPasswordField.value) {
-            isValid = false;
-            highlightError(confirmPasswordField, 'Passwords do not match');
-        }
-        
-        // Validate phone number
-        const phoneField = document.getElementById('phone_number');
-        if (phoneField.value && !isValidPhoneNumber(phoneField.value)) {
-            isValid = false;
-            highlightError(phoneField, 'Please enter a valid phone number');
-        }
-        
-        return isValid;
-    }
-    
-    // Function to prepare form data
-    function prepareFormData() {
-        // Get security settings
-        const twoFactorSms = document.querySelector('.two_factor').checked;
-        const twoFactorEmail = document.querySelector('.email_auth').checked;
-        const loginNotifications = document.querySelector('.login_notifications').checked;
-        
-        const el = document.getElementById("addUserForm");
-        const isEdit = JSON.parse(el.dataset.isEdit);
-        const userId = el.dataset.userId;
-
-        // console.log(typeof isEdit, userId);
-
-        // Prepare the data object
-        const formData = {
-            // Personal information
-            title: document.getElementById('title').value,
-            first_name: document.getElementById('first_name').value,
-            last_name: document.getElementById('last_name').value,
-            middle_name: document.getElementById('middle_name').value,
-            dob: document.getElementById('dob').value,
-            gender: document.getElementById('gender').value,
-            
-            // Account information
-            username: document.getElementById('username').value,
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            role: document.getElementById('role').value,
-            level: document.getElementById('level').value,
-            
-            // Contact information
-            country_code: document.getElementById('country_code').value,
-            phone_number: document.getElementById('phone_number').value,
-            country: document.getElementById('country').value,
-            address: document.getElementById('address').value,
-            zip_code: document.getElementById('zip_code').value,
-            city: document.getElementById('city').value,
-            
-            // Security settings
-            two_factor_auth: twoFactorSms || twoFactorEmail,
-            two_factor_method: twoFactorSms ? 'SMS' : (twoFactorEmail ? 'Email' : 'None'),
-            login_notification: loginNotifications,
-            status: document.getElementById('status').value,
-            expire_pass: document.getElementById('expire_pass').checked,
-            
-            // Additional fields that might be needed
-            user_id: isEdit ? userId : '',
-            org_id: document.getElementById('org_select').value,
-            requestType: isEdit ? 'updateUser' : 'addUser'
-        };
-        
-        return formData;
-    }
-
-    function loadOrganizationsForSelect(){
-        const select = document.getElementById('org_select');
-        if(!select) return;
-        fetch('/api/organizations')
-          .then(r=>r.text())
-          .then(t=>{ let data; try{ data=JSON.parse(t);}catch(_){data=null;} return data; })
-          .then(data=>{
-              const rows = Array.isArray(data) ? data : (data.organizations || data.data || []);
-              const normalized = rows.map(function(row){
-                  const id = row.org_id || row.id;
-                  const name = row.name || row.org_name || '';
-                  const code = row.code || row.org_code || '';
-                  return { id, label: code ? (name + ' (' + code + ')') : name };
-              }).filter(o=>o.id);
-              const cur = select.value;
-              select.innerHTML = '<option value="">Select Organization</option>' + normalized.map(o=>('<option value="'+o.id+'">'+o.label+'</option>')).join('');
-              if(cur) select.value = cur;
-          })
-          .catch(()=>{});
-    }
-    
-    // Function to submit form data (using fetch API)
-    function submitFormData(formData) {
-        return new Promise((resolve, reject) => {
-            // Replace with your actual API endpoint
-            fetch('/api/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Add CSRF token if needed
-                    // 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify(formData)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server returned an error: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => {
-                reject(error);
-            });
-        });
-    }
-    
-    // Helper function to validate email format
-    function isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-    
-    // Helper function to validate phone number
-    function isValidPhoneNumber(phone) {
-        const phoneRegex = /^[0-9+\-\s()]{10,20}$/;
-        return phoneRegex.test(phone);
-    }
-    
-    // Helper function to highlight field with error
-    function highlightError(field, message) {
-        // Add error class
-        field.classList.add('is-invalid');
-        
-        // Create or update error message
-        let errorElement = field.parentNode.querySelector('.invalid-feedback');
-        if (!errorElement) {
-            errorElement = document.createElement('div');
-            errorElement.className = 'invalid-feedback';
-            field.parentNode.appendChild(errorElement);
-        }
-        errorElement.textContent = message;
-    }
-    
-    // Helper function to remove error highlight
-    function removeErrorHighlight(field) {
-        field.classList.remove('is-invalid');
-        const errorElement = field.parentNode.querySelector('.invalid-feedback');
-        if (errorElement) {
-            errorElement.remove();
-        }
-    }
-    
-    // Helper function to generate a unique ID
-    function generateUniqueId() {
-        // Implement your unique ID generation logic
-        return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    // Add CSS for error styling
-    const style = document.createElement('style');
-    style.textContent = `
-        .is-invalid {
-            border-color: #dc3545 !important;
-        }
-        .invalid-feedback {
-            display: block;
-            width: 100%;
-            margin-top: 0.25rem;
-            font-size: 0.875em;
-            color: #dc3545;
-        }
-    `;
-    document.head.appendChild(style);
-});
-
-// Helper function to show notification
-window.showNotification = function(message, type = 'success') {
-    // You can implement a toast notification system here
-    Toastify({
-        text: message,
-        duration: 10000,
-        close: true,
-        gravity: "top",
-        position: "right",
-        stopOnFocus: true,
-        avatar: type === 'success' ? '../assets/images/notification/ok-48.png' : '../assets/images/notification/high_priority-48.png', // small icon image
-        style: {
-            background: type === 'success' ? 'linear-gradient(to right, #00b09b, #96c93d)' : 'linear-gradient(to right, #ff5f6d, #ffc371)',
-            fontSize: "13px",
-        },
-    }).showToast();
-}
-
-// ---------- CONFIG ----------
-const usersApiEndpoint = '/api/users'; // expected: { users: [...] } OR [ ... ] 
-// Optional: page-level loader element id (if you want show/hide)
-function setLoadingState(isLoading) {
-    const tableBody = document.querySelector('#users-datatable tbody');
-    if (isLoading) {
-        // simple overlay row while loading
-        tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4">Loading users...</td></tr>`;
-    }
-}
-
-// Format date helper
-function formatDateShort(dateString) {
-    if (!dateString) return { formattedDate: 'N/A', formattedTime: '' };
-    const date = new Date(dateString);
-    return {
-        formattedDate: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-        formattedTime: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-    };
-}
-
-// ---------- DATATABLE INITIALIZATION ----------
-let usersTable = null;
-let usersData = [];
-
-function initUsersDataTable() {
-    // If table exists, destroy it first
-    if ($.fn.DataTable.isDataTable('#users-datatable')) {
-        $('#users-datatable').DataTable().destroy();
-        $('#users-datatable tbody').empty();
-    }
-
-    usersTable = new DataTable('#users-datatable', {
-        data: [], // will populate after fetch
-        columns: [
-            { // Name + avatar
-                data: null,
-                orderable: true,
-                render: function (data, type, row) {
-                    const name = row.full_name || [row.first_name, row.last_name].filter(Boolean).join(' ').trim() || row.username || 'Unknown';
-                    const avatar = row.profile_picture || '../assets/images/users/user-1.png';
-                    return `
-                        <div class="d-flex align-items-center">
-                            <div class="image me-2">
-                                <img src="`+avatar+`" alt="`+name+`" class="user-avatar" onerror="this.src='images/avatar/default-user.png'">
+    <!-- Add User Modal -->
+    <div class="modal fade modal-blur" id="addUserModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-xl" style="margin-top: 100px;">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="modal-icon" style="color: #6366f1;">
+                            <i class="bi bi-person-plus"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title" id="addUserModalLabel">Add New User</h5>
+                            <p class="text-muted mb-0">Create a new user account with permissions</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <form id="addUserForm" novalidate>
+                        <input type="hidden" id="user_id" name="user_id">
+                        <input type="hidden" id="requestType" name="requestType" value="addUser">
+                        
+                        <ul class="nav nav-tabs" id="userFormTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button">Personal Info</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button">Account</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button">Security</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="permissions-tab" data-bs-toggle="tab" data-bs-target="#permissions" type="button">Permissions</button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content pt-4" id="userFormTabContent">
+                            <!-- Personal Information Tab -->
+                            <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="title" class="form-label">Title</label>
+                                        <select id="title" name="title" class="form-select modern-select">
+                                            <option value="">Select</option>
+                                            <option value="Mr.">Mr.</option>
+                                            <option value="Mrs.">Mrs.</option>
+                                            <option value="Ms.">Ms.</option>
+                                            <option value="Dr.">Dr.</option>
+                                            <option value="Prof.">Prof.</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control modern-input" id="first_name" name="first_name" required>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="middle_name" class="form-label">Middle Name</label>
+                                        <input type="text" class="form-control modern-input" id="middle_name" name="middle_name">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control modern-input" id="last_name" name="last_name" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="dob" class="form-label">Date of Birth</label>
+                                        <input type="date" class="form-control modern-input" id="dob" name="dob">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="gender" class="form-label">Gender</label>
+                                        <select id="gender" name="gender" class="form-select modern-select">
+                                            <option value="">Select</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="country" class="form-label">Country</label>
+                                        <input type="text" class="form-control modern-input" id="country" name="country" placeholder="e.g., Ghana">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nationality" class="form-label">Nationality</label>
+                                        <input type="text" class="form-control modern-input" id="nationality" name="nationality" placeholder="e.g., Ghanaian">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="f12-medium">`+name+`</div>
+                            
+                            <!-- Account Information Tab -->
+                            <div class="tab-pane fade" id="account" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control modern-input" id="username" name="username" required placeholder="e.g., johndoe" autocomplete="username">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control modern-input" id="email" name="email" required placeholder="user@example.com" autocomplete="email">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control modern-input" id="password" name="password" required placeholder="Minimum 8 characters" autocomplete="new-password">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control modern-input" id="confirm_password" name="confirm_password" required autocomplete="new-password">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="org_select" class="form-label">Organization</label>
+                                        <select id="org_select" name="org_id" class="form-select modern-select">
+                                            <option value="">Select Organization</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                                        <select id="role" name="role" class="form-select modern-select" required>
+                                            <option value="">Select Role</option>
+                                            <option value="admin">Administrator</option>
+                                            <option value="manager">Manager</option>
+                                            <option value="user">User</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="level" class="form-label">Access Level</label>
+                                        <select id="level" name="level" class="form-select modern-select">
+                                            <option value="1">Level 1 (Basic)</option>
+                                            <option value="2">Level 2 (Standard)</option>
+                                            <option value="3">Level 3 (Advanced)</option>
+                                            <option value="4">Level 4 (Administrative)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="phone_number" class="form-label">Phone Number</label>
+                                        <div class="input-group">
+                                            <select id="country_code" name="country_code" class="form-select modern-select" style="max-width: 100px;">
+                                                <option value="+233">+233</option>
+                                                <option value="+1">+1</option>
+                                                <option value="+44">+44</option>
+                                                <option value="+61">+61</option>
+                                            </select>
+                                            <input type="tel" class="form-control modern-input" id="phone_number" name="phone_number" placeholder="Phone number">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Security Settings Tab -->
+                            <div class="tab-pane fade" id="security" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="status" class="form-label">Account Status</label>
+                                        <select id="status" name="status" class="form-select modern-select">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="suspended">Suspended</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Password Policy</label>
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="expire_pass" name="expire_pass">
+                                            <label class="form-check-label" for="expire_pass">
+                                                Enable Password Expiration (90 days)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Two-Factor Authentication</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="two_factor" id="two_factor_sms">
+                                                    <label class="form-check-label" for="two_factor_sms">
+                                                        SMS Authentication
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="two_factor" id="two_factor_email">
+                                                    <label class="form-check-label" for="two_factor_email">
+                                                        Email Authentication
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12 mb-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="two_factor" id="two_factor_none" checked>
+                                                    <label class="form-check-label" for="two_factor_none">
+                                                        No Two-Factor Authentication
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h6 class="card-title mb-0">Security Notifications</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="login_notification" name="login_notification">
+                                            <label class="form-check-label" for="login_notification">
+                                                Login Notifications
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="login_approval" name="login_approval">
+                                            <label class="form-check-label" for="login_approval">
+                                                Require Approval for New Logins
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Permissions Tab -->
+                            <div class="tab-pane fade" id="permissions" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Address Information</label>
+                                        <input type="text" class="form-control modern-input mb-2" id="address" name="address" placeholder="Street address">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <input type="text" class="form-control modern-input mb-2" id="city" name="city" placeholder="City">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="text" class="form-control modern-input mb-2" id="zip_code" name="zip_code" placeholder="Zip Code">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <input type="text" class="form-control modern-input" id="state" name="state" placeholder="State/Region">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    <small>Menu permissions can be assigned after creating the user account.</small>
+                                </div>
+                            </div>
                         </div>
-                    `;
-                }
-            },
-            { data: 'username', orderable: true },
-            { data: 'email', orderable: true },
-            { // phone (country_code + phone_number)
-                data: null,
-                render: function (data, type, row) {
-                    const cc = row.country_code || '';
-                    const pn = row.phone_number || 'N/A';
-                    return cc+` `+pn;
-                }
-            },
-            { data: 'role', render: data => (data || 'user'), className: 'text-center' },
-            { // created_at (date + time)
-                data: 'created_at',
-                render: function (data) {
-                    const d = formatDateShort(data);
-                    return d.formattedDate+` `+d.formattedTime;
-                }
-            },
-            { // status badge
-                data: 'status',
-                render: function (data) {
-                    const status = (data || 'unknown').toLowerCase();
-                    let cls = 'bg-success-subtle text-success';
-                    if (status === 'inactive') { cls = 'bg-danger-subtle text-danger'; }
-                    else if (status === 'suspended') { cls = 'bg-warning-subtle text-warning';}
-                    return `<div class="badge rounded-pill `+cls+`"><span class="font-poppins text-capitalize">`+status+`</span></div>`;
-                },
-                orderable: false,
-                className: 'text-center'
-            },
-            { // actions
-                data: null,
-                orderable: false,
-                className: 'text-end',
-                render: function (data, type, row) {
-                    return `
-                        <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" class="btn btn-light-info icon-btn-sm btn-view" data-user-id="`+row.id+`" data-bs-toggle="tooltip" data-bs-custom-class="tooltip-white" data-bs-placement="top" data-bs-title="View User">
-                                <i class="mdi mdi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-light-success icon-btn-sm btn-edit" data-user-id="`+row.id+`" data-bs-toggle="tooltip" data-bs-custom-class="tooltip-white" data-bs-placement="top" data-bs-title="Edit User">
-                                <i class="mdi mdi-grease-pencil"></i>
-                            </button>
-                            <button type="button" class="btn btn-light-danger icon-btn-sm btn-assign-menu" data-user-id="`+row.id+`" data-bs-toggle="tooltip" data-bs-custom-class="tooltip-white" data-bs-placement="top" data-bs-title="Assign Menu">
-                                <i class="mdi mdi-format-list-checks"></i>
-                            </button>
-                            <button type="button" class="btn btn-light-warning icon-btn-sm btn-deactivate" data-user-id="`+row.id+`" data-bs-toggle="tooltip" data-bs-custom-class="tooltip-white" data-bs-placement="top" data-bs-title="Deactivate User">
-                                <i class="mdi mdi-account-off"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        ],
-        dom:
-            "<'d-flex align-items-center mb-2'<'btn-left'B><'ms-auto'f>>" + // buttons on left, search on right
-            "<'row'<'col-sm-12'tr>>" +
-            "<'row mt-2'<'col-sm-12 col-md-6'i><'col-sm-12 col-md-6'p>>",
-        buttons: [
-            {
-                extend: 'copyHtml5',
-                text: '<i class="mdi mdi-content-copy me-1"></i> Copy',
-                className: 'btn btn-sm btn-outline-danger me-1',
-                titleAttr: 'Copy to clipboard'
-            },
-            {
-                extend: 'csvHtml5',
-                text: '<i class="mdi mdi-file-excel me-1"></i> CSV',
-                className: 'btn btn-sm btn-outline-success me-1',
-                titleAttr: 'Export CSV'
-            },
-            // {
-            //     extend: 'excelHtml5',
-            //     text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-            //     className: 'btn btn-sm btn-outline-success me-1',
-            //     titleAttr: 'Export Excel'
-            // },
-            // {
-            //     extend: 'pdfHtml5',
-            //     text: '<i class="bi bi-file-earmark-pdf me-1"></i> PDF',
-            //     className: 'btn btn-sm btn-outline-danger me-1',
-            //     titleAttr: 'Export PDF',
-            //     orientation: 'landscape',
-            //     pageSize: 'A4',
-            //     exportOptions: { columns: ':visible' }
-            // },
-            {
-                extend: 'print',
-                text: '<i class="bi bi-printer me-1"></i> Print',
-                className: 'btn btn-sm btn-outline-info me-1',
-                titleAttr: 'Print table'
-            }
-        ]
-    });
-    $('#users-datatable').on('draw.dt', function(){ updateCountCards(); });
-    if (usersTable && typeof usersTable.on === 'function') { usersTable.on('draw', function(){ updateCountCards(); }); }
-    const tbody = document.querySelector('#users-datatable tbody');
-    if (tbody && !tbody.__observer) {
-        const obs = new MutationObserver(() => updateCountCards());
-        obs.observe(tbody, { childList: true });
-        tbody.__observer = obs;
-    }
-}
-
-// ---------- FETCH DATA AND POPULATE TABLE ----------
-async function loadUsersForDataTable() {
-    try {
-        //setLoadingState(true);
-        const resp = await fetch(usersApiEndpoint, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-        if (!resp.ok) throw new Error('Server returned ' + resp.status);
-        const json = await resp.json();
-        // Accept either { users: [...] } OR [...]
-        const users = Array.isArray(json) ? json : (json.users || json.data || []);
-        // Normalize rows if necessary (ensure id present)
-        const normalized = users.map(u => {
-            return Object.assign({}, u, {
-                id: u.id || u.user_id || null
-            });
-        });
-        usersData = normalized;
-
-        // initialize datatable if not exists
-        if (!usersTable) initUsersDataTable();
-
-        // load data into datatable (clear -> add -> draw)
-        usersTable.clear();
-        usersTable.rows.add(normalized);
-        usersTable.draw();
-        updateCountCards();
-        setTimeout(updateCountCards, 0);
-
-    } catch (err) {
-        console.error('Error loading users for DataTable:', err);
-        // Optionally show user-facing toast
-    } finally {
-        setLoadingState(false);
-    }
-}
-
-// ---------- INIT ON DOM READY ----------
-$(document).ready(function() {
-    // create datatable wrapper
-    initUsersDataTable();
-
-    // load data and populate datatable
-    loadUsersForDataTable().then(() => {
-        addActionListeners();
-        addFilterListeners();
-    });
-});
-
-// Function to set loading state
-function setLoadingState(isLoading) {
-    const tableBody = document.querySelector('.list-transaction-content tbody');
-    
-    if (isLoading) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-center py-4">
-                    <!--<div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 text-muted">Loading users...</p>-->
-                </td>
-            </tr>
-        `;
-    }
-}
-
-// Function to show notification
-// function showNotification(message, type = 'info') {
-//     // You can implement a toast notification system here
-//     console.log(`${type}: ${message}`);
-    
-//     // Example using Bootstrap toast (if available)
-//     if (typeof bootstrap !== 'undefined') {
-//         // Create and show a toast notification
-//     }
-// }
-
-// Add some CSS for the user avatar
-const style = document.createElement('style');
-style.textContent = `
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-`;
-document.head.appendChild(style);
-
-// Function to add event listeners to action buttons
-function addActionListeners() {
-    // View button
-    document.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            viewUser(userId);
-        });
-    });
-    
-    // Edit button
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            editUser(userId);
-        });
-    });
-    
-    // Assign menu button
-    document.querySelectorAll('.btn-assign-menu').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            showAssignMenuModal(userId);
-        });
-    });
-
-    // Deactivate button
-    document.querySelectorAll('.btn-deactivate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            confirmDeactivateUser(userId);
-        });
-    });
-}
-
-// Function to view user details
-function viewUser(userId) {
-    // console.log('View user:', userId);
-    // Fetch user details and show in a view modal
-    fetch('/api/users/'+userId)
-        .then(response => response.json())
-        .then(user => {
-            // Create or show view modal with user details
-            showUserViewModal(user);
-        })
-        .catch(error => {
-            console.error('Error fetching user details:', error);
-            showNotification('Failed to load user details', 'error');
-        });
-}
-
-function editUser(userId) {
-    // console.log('Edit user:', userId);
-
-    $('#viewUserModal').modal('hide');
-    
-    // Show loading state
-    setLoadingState(true, 'Loading user details...');
-    
-    // Fetch user details and populate the edit form
-    fetch('/api/users/' + userId)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Extract user object from response
-            const user = data.user || data;
-            
-            // Populate the existing addUserModal for editing
-            populateEditForm(user);
-            
-            // Show the modal
-            const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
-            modal.show();
-            
-            // Change modal title
-            document.getElementById('addUserModalLabel').innerHTML = 
-                'Edit User';
-            
-            // Change submit button text
-            document.getElementById('submitUserForm').innerHTML = 'Update User';
-
-            
-            // Store user ID for update
-            document.getElementById('addUserForm').dataset.userId = userId;
-            document.getElementById('addUserForm').dataset.isEdit = 'true';
-            
-            // Disable username field for editing
-            const usernameField = document.getElementById('username');
-            if (usernameField) {
-                usernameField.disabled = true;
-            }
-            
-        })
-        .catch(error => {
-            console.error('Error fetching user details:', error);
-            showNotification('Failed to load user details for editing: ' + error.message, 'error');
-        })
-        .finally(() => {
-            setLoadingState(false);
-        });
-}
-
-    // Function to populate edit form with proper null checking
-    function populateEditForm(user) {
-    // console.log('Populating form with user:', user);
-    
-    // Safe function to set value only if element exists
-    function setValueIfExists(elementId, value) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.value = value || '';
-        } else {
-            console.warn('Element not found:', elementId);
-        }
-    }
-    
-    // Safe function to set checked state
-    function setCheckedIfExists(elementId, isChecked) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.checked = !!isChecked;
-        } else {
-            console.warn('Element not found:', elementId);
-        }
-    }
-    
-    // Personal Information
-    setValueIfExists('title', user.title);
-    setValueIfExists('first_name', user.first_name);
-    setValueIfExists('last_name', user.last_name);
-    setValueIfExists('middle_name', user.middle_name);
-    setValueIfExists('dob', user.dob ? formatDateForInput(user.dob) : '');
-    setValueIfExists('gender', user.gender);
-    
-    // Account Information
-    setValueIfExists('username', user.username);
-    setValueIfExists('email', user.email);
-    setValueIfExists('org_select', user.org_id);
-    setValueIfExists('role', user.role);
-    setValueIfExists('level', user.level);
-    
-    // Contact Information
-    setValueIfExists('country_code', user.country_code || '+233');
-    setValueIfExists('phone_number', user.phone_number);
-    setValueIfExists('country', user.country || 'Ghana');
-    setValueIfExists('address', user.address);
-    setValueIfExists('zip_code', user.zip_code || '00233');
-    setValueIfExists('city', user.city);
-    
-    // Security Settings
-    setValueIfExists('status', user.status || 'active');
-    setCheckedIfExists('expire_pass', user.expire_pass);
-    
-    // Set security settings - Two Factor Authentication
-    const twoFactorSms = document.querySelector('.account-security-item:nth-child(1) .content-item:nth-child(1) .tf-check');
-    const twoFactorEmail = document.querySelector('.account-security-item:nth-child(1) .content-item:nth-child(2) .tf-check');
-    const loginNotification = document.querySelector('.account-security-item:nth-child(2) .content-item .tf-check');
-    
-    // Handle two-factor authentication settings
-    if (user.two_factor_auth) {
-        if (user.two_factor_method === 'SMS' && twoFactorSms) {
-            twoFactorSms.checked = true;
-            if (twoFactorEmail) twoFactorEmail.checked = false;
-        } else if (user.two_factor_method === 'Email' && twoFactorEmail) {
-            twoFactorEmail.checked = true;
-            if (twoFactorSms) twoFactorSms.checked = false;
-        } else if (twoFactorSms && twoFactorEmail) {
-            // Default to SMS if method is not specified but 2FA is enabled
-            twoFactorSms.checked = true;
-            twoFactorEmail.checked = false;
-        }
-    } else {
-        if (twoFactorSms) twoFactorSms.checked = false;
-        if (twoFactorEmail) twoFactorEmail.checked = false;
-    }
-    
-    // Handle login notification
-    if (loginNotification) {
-        loginNotification.checked = user.login_notification || false;
-    }
-    
-    // Remove required attribute from password fields for edit mode
-    const passwordField = document.getElementById('password');
-    const confirmPasswordField = document.getElementById('confirm_password');
-    
-    if (passwordField) {
-        passwordField.removeAttribute('required');
-        passwordField.placeholder = 'Leave blank to keep current password';
-    }
-    
-    if (confirmPasswordField) {
-        confirmPasswordField.removeAttribute('required');
-        confirmPasswordField.placeholder = 'Leave blank to keep current password';
-    }
-}
-
-// Helper function to format date for input field (YYYY-MM-DD)
-function formatDateForInput(dateString) {
-    if (!dateString) return '';
-    
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '';
-        
-        return date.toISOString().split('T')[0];
-    } catch (e) {
-        console.error('Error formatting date:', e);
-        return '';
-    }
-}
-
-// Function to set loading state
-function setLoadingState(isLoading, message = 'Loading...') {
-    // Create or get loading overlay
-    let overlay = document.getElementById('loadingOverlay');
-    
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'loadingOverlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            flex-direction: column;
-        `;
-        
-        overlay.innerHTML = `
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <div class="loading-text mt-2 text-muted f12-medium">${message}</div>
-        `;
-        
-        document.body.appendChild(overlay);
-    }
-    
-    if (isLoading) {
-        overlay.style.display = 'flex';
-        const loadingText = overlay.querySelector('.loading-text');
-        if (loadingText) {
-            loadingText.textContent = message;
-        }
-    } else {
-        overlay.style.display = 'none';
-    }
-}
-
-// Function to show assign menu modal
-function showAssignMenuModal(userId) {
-    // console.log('Assign menu to user:', userId);
-    
-    // Show loading state
-    // setLoadingState(true, 'Loading menu data...');
-    
-    // Fetch available menus and user's assigned menus
-    Promise.all([
-        fetch('/api/users/menus').then(res => res.json()),
-        fetch('/api/users/' + userId + '/menus').then(res => res.json())
-    ])
-    .then(([allMenusResponse, assignedMenusResponse]) => {
-        // Extract menus from responses
-        const allMenus = allMenusResponse.menus || allMenusResponse;
-        const assignedMenus = assignedMenusResponse.menus || assignedMenusResponse;
-        
-        // Create and show the menu assignment modal
-        createMenuAssignmentModal(userId, allMenus, assignedMenus);
-    })
-    .catch(error => {
-        console.error('Error fetching menu data:', error);
-        showNotification('Failed to load menu data: ' + error.message, 'error');
-    })
-    .finally(() => {
-        setLoadingState(false);
-    });
-}
-
-// Function to create menu assignment modal
-function createMenuAssignmentModal(userId, allMenus, assignedMenus) {
-    // Create modal HTML
-    const modalHTML = `
-        <div class="modal fade modal-blur" id="assignMenuModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="assignMenuModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-md modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header ps-3">
-                        <h5 class="modal-title" id="assignMenuModalLabel">
-                            <i class="fas fa-list me-2"></i>Assign Menus to User
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <input type="text" class="form-control bg-Gainsboro" id="menuSearch" placeholder="Search menus...">
-                        </div>
-                        <div class="menu-list-container" style="max-height: 400px; overflow-y: auto;">
-                            <div id="menuTree" class="menu-tree"></div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="saveMenuAssignments">Save Assignments</button>
-                    </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitUserForm">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Create User
+                    </button>
                 </div>
             </div>
         </div>
-    `;
-    
-    // Remove existing modal if it exists
-    const existingModal = document.getElementById('assignMenuModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add modal to document
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Build menu tree
-    buildMenuTree(allMenus, assignedMenus);
-    
-    // Add event listeners
-    document.getElementById('saveMenuAssignments').onclick = () => saveMenuAssignments(userId);
-    document.getElementById('menuSearch').addEventListener('input', filterMenus);
-    
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('assignMenuModal'));
-    modal.show();
-    
-    // Clean up when modal is closed
-    modal._element.addEventListener('hidden.bs.modal', function() {
-        if (document.body.contains(modal._element)) {
-            document.body.removeChild(modal._element);
-        }
-    });
-}
+    </div>
 
-// Function to build menu tree
-function buildMenuTree(allMenus, assignedMenus) {
-    const menuTree = document.getElementById('menuTree');
-    menuTree.innerHTML = '';
-
-    // Ensure arrays
-    const allMenusArray = Array.isArray(allMenus) ? allMenus : (allMenus.menus || []);
-    const assignedMenusArray = Array.isArray(assignedMenus) ? assignedMenus : (assignedMenus.menus || []);
-
-    // Extract assigned menu IDs
-    const assignedMenuIds = assignedMenusArray.map(menu => menu.id);
-
-    // Create a map for quick lookup of menus by ID
-    const menuById = {};
-    allMenusArray.forEach(menu => {
-        menuById[menu.id] = menu;
-    });
-
-    // Group menus by parent and build hierarchy
-    const menuMap = {};
-    allMenusArray.forEach(menu => {
-        const parentId = menu.parent_id || 'root';
-        if (!menuMap[parentId]) {
-            menuMap[parentId] = [];
-        }
-        menuMap[parentId].push(menu);
-    });
-
-    // Build tree starting with root level menus
-    buildMenuLevel(menuMap, 'root', menuTree, assignedMenuIds, menuById, 0);
-
-    // Add selection listeners after tree is built
-    addMenuSelectionListeners(menuMap, menuById);
-}
-
-// Recursive function to build menu levels
-function buildMenuLevel(menuMap, parentId, container, assignedMenuIds, menuById, level) {
-    const menus = menuMap[parentId] || [];
-    
-    menus.sort((a, b) => (a.position || 0) - (b.position || 0));
-    
-    menus.forEach(menu => {
-        const isAssigned = assignedMenuIds.includes(menu.id);
-        const hasChildren = menuMap[menu.id] && menuMap[menu.id].length > 0;
-        
-        const menuItem = document.createElement('div');
-        menuItem.className = 'menu-item-a';
-        menuItem.dataset.menuId = menu.id;
-        menuItem.dataset.parentId = menu.parent_id || 'root';
-        menuItem.style.marginLeft = level * 20 + 'px';
-        
-        // Determine if parent should be partially checked (some children selected)
-        let partialCheck = false;
-        if (hasChildren) {
-            const childMenuIds = menuMap[menu.id].map(child => child.id);
-            const assignedChildren = childMenuIds.filter(id => assignedMenuIds.includes(id));
-            partialCheck = assignedChildren.length > 0 && assignedChildren.length < childMenuIds.length;
-        }
-        
-        // menuItem.innerHTML = `
-        //     <div class="tf-cart-checkbox mt-2">
-        //         <div class="tf-checkbox-wrapp">
-        //             <input class="checkbox-item menu-checkbox" type="checkbox" 
-        //                 data-menu-id="`+menu.id+`"
-        //                 data-parent-id="`+menu.parent_id || 'root'+`"
-        //                 `+isAssigned ? 'checked' : ''+`
-        //                 `+partialCheck ? 'data-partial="true"' : ''+`
-        //                 `+hasChildren ? 'data-has-children="true"' : ''+`>
-        //             <div>
-        //                 <i class="icon-check"></i>
-        //             </div>
-        //         </div>
-        //         <div class="f12-medium text-break d-flex align-items-center">
-        //             `+menu.icon ? `<i class="`+menu.icon+` me-2"></i>` : ''+`
-        //             `+menu.title+`
-        //         </div>
-        //     </div>
-        // `;
-
-        menuItem.innerHTML = `
-            <div class="form-check d-flex align-items-center mb-2">
-                <input class="form-check-input menu-checkbox me-2" type="checkbox"
-                    data-menu-id="`+menu.id+`"
-                    data-parent-id="`+menu.parent_id+`"
-                    `+(isAssigned ? 'checked' : '')+`
-                    `+(partialCheck ? 'data-partial="true"' : '')+`
-                    `+(hasChildren ? 'data-has-children="true"' : '')+`>
-        
-                <label class="form-check-label d-flex align-items-center text-break w-100">
-                `+(menu.icon ? `<span class="me-2"><i class="`+menu.icon+` pe-nav-icon"></i></span>` : '')+`
-                <span>`+menu.title+`</span>
-                </label>
-            </div>
-            `;
-        
-        container.appendChild(menuItem);
-        
-        // Recursively build child menus
-        if (hasChildren) {
-            buildMenuLevel(menuMap, menu.id, container, assignedMenuIds, menuById, level + 1);
-        }
-    });
-}
-
-// Function to add menu selection listeners
-function addMenuSelectionListeners(menuMap, menuById) {
-    // Handle parent checkbox changes (check/uncheck all children)
-    document.querySelectorAll('.menu-checkbox[data-has-children="true"]').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const menuId = parseInt(this.dataset.menuId);
-            const isChecked = this.checked;
-            
-            // Check/uncheck all children recursively
-            checkAllChildren(menuId, isChecked, menuMap);
-            
-            // Update parent states
-            updateParentCheckboxStates(this);
-        });
-    });
-    
-    // Handle child checkbox changes (update parent state)
-    document.querySelectorAll('.menu-checkbox:not([data-has-children="true"])').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateParentCheckboxStates(this);
-        });
-    });
-    
-    // Initialize parent checkbox states
-    document.querySelectorAll('.menu-checkbox[data-has-children="true"]').forEach(checkbox => {
-        updateParentCheckboxStates(checkbox);
-    });
-}
-
-// Function to check/uncheck all children recursively
-function checkAllChildren(parentId, isChecked, menuMap) {
-    const children = menuMap[parentId] || [];
-    
-    children.forEach(child => {
-        const childCheckbox = document.querySelector(`.menu-checkbox[data-menu-id="${child.id}"]`);
-        if (childCheckbox) {
-            childCheckbox.checked = isChecked;
-            
-            // Recursively check children of this child
-            if (childCheckbox.dataset.hasChildren === 'true') {
-                checkAllChildren(child.id, isChecked, menuMap);
-            }
-        }
-    });
-}
-
-// Function to update parent checkbox states based on children
-function updateParentCheckboxStates(checkboxElement) {
-    const menuId = parseInt(checkboxElement.dataset.menuId);
-    const parentId = checkboxElement.dataset.parentId;
-    
-    if (parentId === 'root') return;
-    
-    const parentCheckbox = document.querySelector(`.menu-checkbox[data-menu-id="`+parentId+`"]`);
-    if (!parentCheckbox) return;
-    
-    const children = document.querySelectorAll(`.menu-item-a[data-parent-id="`+parentId+`"] .menu-checkbox`);
-    const checkedChildren = Array.from(children).filter(cb => cb.checked);
-    const partialChildren = Array.from(children).filter(cb => cb.dataset.partial === 'true');
-    
-    // Remove partial state
-    parentCheckbox.removeAttribute('data-partial');
-    
-    if (checkedChildren.length === 0) {
-        // No children checked
-        parentCheckbox.checked = false;
-    } else if (checkedChildren.length === children.length && partialChildren.length === 0) {
-        // All children checked
-        parentCheckbox.checked = true;
-    } else {
-        // Some children checked - set partial state
-        parentCheckbox.checked = true;
-        parentCheckbox.dataset.partial = 'true';
-    }
-    
-    // Recursively update grandparents
-    updateParentCheckboxStates(parentCheckbox);
-}
-
-// Function to filter menus
-function filterMenus() {
-    const searchTerm = document.getElementById('menuSearch').value.toLowerCase();
-    const menuItems = document.querySelectorAll('.menu-item-a');
-    
-    if (!searchTerm) {
-        // Show all items if no search term
-        menuItems.forEach(item => {
-            item.style.display = 'block';
-            // Show all parents
-            let parent = item.closest('.menu-item-a');
-            while (parent) {
-                parent.style.display = 'block';
-                parent = parent.parentElement.closest('.menu-item-a');
-            }
-        });
-        return;
-    }
-    
-    menuItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            item.style.display = 'block';
-            
-            // Show all parents of matching items
-            let parent = item.parentElement;
-            while (parent && parent.classList.contains('menu-item-a')) {
-                parent.style.display = 'block';
-                parent = parent.parentElement.closest('.menu-item-a');
-            }
-        } else {
-            // Check if any children match
-            const children = item.querySelectorAll('.menu-item-a');
-            const hasMatchingChild = Array.from(children).some(child => 
-                child.textContent.toLowerCase().includes(searchTerm)
-            );
-            
-            item.style.display = hasMatchingChild ? 'block' : 'none';
-        }
-    });
-}
-
-// Function to save menu assignments
-function saveMenuAssignments(userId) {
-    const selectedMenus = [];
-
-    // Get all checked checkboxes (excluding partially checked parents)
-    document.querySelectorAll('.menu-checkbox:checked:not([data-partial="true"])').forEach(checkbox => {
-        selectedMenus.push(parseInt(checkbox.dataset.menuId));
-    });
-
-    // Ask for confirmation before saving
-    Swal.fire({
-        title: 'Are you sure?',
-        text: 'Do you want to save these menu assignments?',
-        icon: 'warning',
-        showCancelButton: true,
-        // confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, Save',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading state
-            showLoader("Processing...");
-
-            // Send assignment data to server
-            fetch('/api/users/' + userId + '/menus', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    menu_ids: selectedMenus
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server returned ` + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                     showNotification('Menu assignments saved successfully!', 'success');
-            
-                    // Close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('assignMenuModal'));
-                    modal.hide();
-                } else {
-                    throw new Error(data.message || 'Failed to save assignments');
-                }
-            })
-            .catch(error => {
-                console.error('Error saving menu assignments:', error);
-                Swal.fire('Error', 'Failed to save menu assignments: ' + error.message, 'error');
-            })
-            .finally(() => {
-                hideLoader();
-            });
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-            Swal.fire("Cancelled", "No action performed.", "error");
-        }
-    });
-}
-
-// Function to show user view modal
-function showUserViewModal(user) {
-    // Precompute safe fields
-    const profilePicture = user.profile_picture || '../assets/images/users/user-1.png';
-    const fullName = user.full_name || (user.first_name || '') + ' ' + (user.last_name || '');
-    const role = user.role || 'No role assigned';
-    const username = user.username || 'N/A';
-    const email = user.email || 'N/A';
-    const phone = (user.country_code || '') + ' ' + (user.phone_number || 'N/A');
-    const title = user.title || 'N/A';
-    const gender = user.gender || 'N/A';
-    const dob = user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A';
-    const status = user.status || 'unknown';
-    const statusClass = status === 'active' ? 'success' : status === 'inactive' ? 'secondary' : 'warning';
-    const level = user.level || 'N/A';
-    const joined = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
-    const updated = user.updated_at ? new Date(user.updated_at).toLocaleDateString() : 'N/A';
-    const nationality = user.nationality || 'N/A';
-    const address = user.address || 'N/A';
-    const city = user.city || 'N/A';
-    const country = user.country || 'N/A';
-    const zip_code = user.zip_code || 'N/A';
-    const two_factor_auth = user.two_factor_auth ? 'Enabled' : 'Disabled';
-    const login_notification = user.login_notification ? 'Enabled' : 'Disabled';
-    const login_approval = user.login_approval ? 'Enabled' : 'Disabled';
-    const expire_pass = user.expire_pass ? 'Yes (90 days)' : 'No';
-    const two_factor_method = user.two_factor_method || 'N/A';
-
-    // Build modal HTML with precomputed values
-    const modalHTML = `
-            <div class="modal fade modal-blur" id="viewUserModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                <div class="modal-content shadow-lg rounded-4">
-                    <div class="modal-header py-3">
-                    <h5 class="modal-title fw-semibold" id="viewUserModalLabel">
-                        <i class="fas fa-user-circle me-2"></i> User Details
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                    <div class="row g-4">
-                        <div class="col-md-4 text-center">
-                        <div class="p-3 bg-light rounded-4 shadow-none">
-                            <img src="`+profilePicture+`" alt="`+fullName+`" class="rounded-circle profile-img border border-3 shadow-none mb-3" onerror="this.src='images/users/user-1.png'">
-                            <h5 class="fw-bold mb-1">`+fullName+`</h5>
-                            <p class="text-muted mb-0">`+role+`</p>
-                        </div>
-                        </div>
-                        <div class="col-md-8">
-                        <div class="mb-4">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-badge me-1"></i> Account Information</h6>
-                            <div class="card shadow-none rounded-3">
-                            <div class="card-body p-3">
-                                <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>Username:</strong> <span class="text-muted float-end">`+username+`</span></p>
-                                    <p class="mb-2"><strong>Email:</strong> <span class="text-muted float-end">`+email+`</span></p>
-                                    <p class="mb-2"><strong>Phone:</strong> <span class="text-muted float-end">`+phone+`</span></p>
-                                    <p class="mb-2"><strong>Title:</strong> <span class="text-muted float-end">`+title+`</span></p>
-                                    <p class="mb-2"><strong>Gender:</strong> <span class="text-muted float-end">`+gender+`</span></p>
-                                    <p class="mb-0"><strong>Date of Birth:</strong> <span class="text-muted float-end">`+dob+`</span></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-2"><strong>Status:</strong> <span class="badge bg-`+statusClass+` float-end">`+status+`</span></p>
-                                    <p class="mb-2"><strong>Level:</strong> <span class="text-muted float-end">`+level+`</span></p>
-                                    <p class="mb-2"><strong>Joined:</strong> <span class="text-muted float-end">`+joined+`</span></p>
-                                    <p class="mb-2"><strong>Last Updated:</strong> <span class="text-muted float-end">`+updated+`</span></p>
-                                    <p class="mb-0"><strong>Nationality:</strong> <span class="text-muted float-end">`+nationality+`</span></p>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-geo-alt me-1"></i> Address Information</h6>
-                            <div class="card shadow-none rounded-3">
-                            <div class="card-body p-3">
-                                <p class="mb-2"><strong>Address:</strong> <span class="text-muted float-end">`+address+`</span></p>
-                                <p class="mb-2"><strong>City:</strong> <span class="text-muted float-end">`+city+`</span></p>
-                                <p class="mb-2"><strong>Country:</strong> <span class="text-muted float-end">`+country+`</span></p>
-                                <p class="mb-0"><strong>Zip Code:</strong> <span class="text-muted float-end">`+zip_code+`</span></p>
-                            </div>
-                            </div>
+    <!-- View User Modal -->
+    <div class="modal fade modal-blur" id="viewUserModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-xl" style="margin-top: 100px;">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="modal-icon" style="color: #10b981;">
+                            <i class="bi bi-person-badge"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-shield-lock me-1"></i> Security Settings</h6>
-                            <div class="card shadow-none rounded-3">
-                            <div class="card-body p-3">
-                                <p class="mb-2"><strong>Two-Factor Auth:</strong> <span class="text-muted float-end">`+two_factor_auth+`</span></p>
-                                <p class="mb-2"><strong>Login Notifications:</strong> <span class="text-muted float-end">`+login_notification+`</span></p>
-                                <p class="mb-2"><strong>Login Approval:</strong> <span class="text-muted float-end">`+login_approval+`</span></p>
-                                <p class="mb-0"><strong>Password Expires:</strong> <span class="text-muted float-end">`+expire_pass+`</span></p>
-                            </div>
-                            </div>
-                        </div>
+                            <h5 class="modal-title" id="viewUserName">User Details</h5>
+                            <p class="text-muted mb-0" id="viewUserRole"></p>
                         </div>
                     </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div class="row">
+                        <div class="col-lg-7">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Personal & Account Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="userDetailsContent">
+                                        <!-- User details will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-5">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">Account Summary</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="summary-item">
+                                        <span class="summary-label">Status:</span>
+                                        <span class="summary-value badge" id="view_meta_status"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Role:</span>
+                                        <span class="summary-value" id="view_meta_role"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Access Level:</span>
+                                        <span class="summary-value" id="view_meta_level"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Organization:</span>
+                                        <span class="summary-value" id="view_meta_organization"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Email:</span>
+                                        <span class="summary-value" id="view_meta_email"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Phone:</span>
+                                        <span class="summary-value" id="view_meta_phone"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">2FA:</span>
+                                        <span class="summary-value" id="view_meta_2fa"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Created Date:</span>
+                                        <span class="summary-value" id="view_meta_created"></span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="summary-label">Last Login:</span>
+                                        <span class="summary-value" id="view_meta_last_login"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="editUser(`+user.id+`)">Edit User</button>
+                    <!-- Assigned Menus Section -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">Assigned Permissions & Menus</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="view_menus_list" class="menus-grid">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                            <span class="ms-2 text-muted">Loading assigned menus...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="editFromViewBtn">
+                        <i class="bi bi-pencil me-2"></i>
+                        Edit User
+                    </button>
                 </div>
             </div>
-            `;
-    
-   // Remove old modal if it exists
-    const existingModal = document.getElementById('viewUserModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+        </div>
+    </div>
 
-    // Create a temporary container to parse the HTML
-    const tempContainer = document.createElement('div');
-    tempContainer.innerHTML = modalHTML;
-    const modalElement = tempContainer.firstElementChild;
-    
-    // Add the modal to the DOM
-    document.body.appendChild(modalElement);
-    
-    // Initialize and show the modal after a slight delay to ensure DOM is ready
-    setTimeout(() => {
-        try {
-            const modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
-            modal.show();
-            
-            // Add event listener to remove modal from DOM when hidden
-            modalElement.addEventListener('hidden.bs.modal', function () {
-                if (document.body.contains(modalElement)) {
-                    document.body.removeChild(modalElement);
-                }
-            });
-        } catch (error) {
-            console.error('Error showing modal:', error);
-        }
-    }, 50);
-}
+    <!-- Assign Menus Modal -->
+    <div class="modal fade modal-blur" id="assignMenusModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-lg" style="margin-top: 100px;">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="modal-icon" style="color: #8b5cf6;">
+                            <i class="bi bi-list-check"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Assign Menu Permissions</h5>
+                            <p class="text-muted mb-0" id="assign_user_name"></p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <input type="hidden" id="assign_user_id">
+                    <div class="mb-3">
+                        <label class="form-label">Select Menus</label>
+                        <div class="form-control modern-select p-3" style="height: 300px; overflow-y: auto;" id="menusList">
+                            <!-- Menus will be loaded here -->
+                        </div>
+                        <small class="text-muted">Selected menus will be accessible to this user</small>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Parent menus will automatically include access to their child menus</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitAssignMenus">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Save Permissions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-// Add CSS for menu tree and partial check states
-const menuStyles = `
-    <style>
-        .menu-tree {
-            padding: 10px;
-        }
-        .menu-item-a {
-            margin-bottom: 5px;
-            padding: 5px;
-            border-radius: 4px;
-        }
-        .menu-item-a:hover {
-            background-color: #f8f9fa;
-        }
-        .menu-checkbox {
-            margin-right: 8px;
-        }
-        .menu-checkbox[data-partial="true"] {
-            opacity: 0.7;
-        }
-        .tf-checkbox-wrapp {
-            position: relative;
-        }
-        .form-check-label {
-            cursor: pointer;
-        }
-    </style>
-`;
+    <!-- Reset Password Modal -->
+    <div class="modal fade modal-blur" id="resetPasswordModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-md" style="margin-top: 100px;">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="modal-icon" style="color: #f59e0b;">
+                            <i class="bi bi-key"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Reset Password</h5>
+                            <p class="text-muted mb-0" id="reset_user_name"></p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <form id="resetPasswordForm">
+                        <input type="hidden" id="reset_user_id" name="user_id">
+                        
+                        <!-- Default Password Section -->
+                        <div class="mb-4 p-3 bg-light rounded-3 border">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label mb-0 fw-bold">Set Quick Password</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="useDefaultPassword()">
+                                    <i class="bi bi-magic me-1"></i> Apply
+                                </button>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-white" id="default_password_display" value="Welcome@123" placeholder="Enter a temporary password">
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyDefaultPassword()">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Modify this password and click 'Apply' to pre-fill the fields below</small>
+                        </div>
 
-// Add styles to document if not already added
-if (!document.getElementById('menu-styles')) {
-    const styleElement = document.createElement('style');
-    styleElement.id = 'menu-styles';
-    styleElement.textContent = menuStyles;
-    document.head.appendChild(styleElement);
-}
-</script>
-async function confirmDeactivateUser(userId) {
-    const result = await Swal.fire({
-        title: 'Deactivate this user?',
-        text: 'They will no longer be able to log in.',
-        icon: 'warning',
-        showCancelButton: true,
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, deactivate'
-    });
-    if (!result.isConfirmed) return;
+                        <hr class="my-4 opacity-10">
 
-    try {
-        const resp = await fetch('/api/users/' + userId + '/deactivate', { method: 'POST' });
-        const text = await resp.text();
-        let data; try { data = JSON.parse(text); } catch(_) { data = { status:'error', message:text }; }
-        if (resp.ok) {
-            showNotification((data.message || 'User deactivated'), 'success');
-            loadUsersForDataTable();
-        } else {
-            showNotification((data.message || data.error || 'Failed to deactivate'), 'error');
-        }
-    } catch (e) {
-        console.error(e);
-        showNotification('Error deactivating user: ' + e.message, 'error');
-    }
-}
-function updateCountCards() {
-    let visible = [];
-    try {
-        if (window.jQuery && $.fn.dataTable && $.fn.dataTable.isDataTable('#users-datatable')) {
-            visible = $('#users-datatable').DataTable().rows({ search: 'applied' }).data().toArray();
-        } else if (usersTable && typeof usersTable.rows === 'function') {
-            const d = usersTable.rows({ search: 'applied' }).data();
-            visible = Array.isArray(d) ? d : (typeof d.toArray === 'function' ? d.toArray() : []);
-        }
-    } catch(_){ }
-    if (!Array.isArray(visible) || visible.length===0) {
-        const domRows = Array.from(document.querySelectorAll('#users-datatable tbody tr'));
-        visible = domRows.map(function(tr){ const tds = tr.querySelectorAll('td'); const statusTd = tds[6]; const s = statusTd ? statusTd.textContent.trim().toLowerCase() : ''; return { status: s }; });
-        if (visible.length===0) visible = usersData;
-    }
-    const normStatus = (s, row) => {
-        let val = s ? String(s).toLowerCase() : 'unknown';
-        if (val === 'unknown' && row && typeof row.is_active !== 'undefined') {
-            val = (row.is_active === true || String(row.is_active).toLowerCase()==='true') ? 'active' : 'inactive';
-        }
-        if (val === 'deactivated' || val === 'blocked' || val === 'inactive') return 'inactive';
-        if (val === 'active') return 'active';
-        return 'unknown';
-    };
-    const total = visible.length;
-    const active = visible.filter(u => normStatus(u.status, u) === 'active').length;
-    const inactive = visible.filter(u => normStatus(u.status, u) === 'inactive').length;
-    const totalEl = document.getElementById('totalCount');
-    const activeEl = document.getElementById('activeCount');
-    const inactiveEl = document.getElementById('inactiveCount');
-    if (totalEl) totalEl.textContent = total;
-    if (activeEl) activeEl.textContent = active;
-    if (inactiveEl) inactiveEl.textContent = inactive;
-}
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label fw-bold">New Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control modern-input" id="new_password" name="new_password" required placeholder="Enter new password" autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_new_password" class="form-label fw-bold">Confirm Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control modern-input" id="confirm_new_password" name="confirm_new_password" required placeholder="Confirm new password" autocomplete="new-password">
+                        </div>
+                        
+                        <div class="alert alert-warning mb-0">
+                            <div class="d-flex gap-2">
+                                <i class="bi bi-exclamation-triangle flex-shrink-0"></i>
+                                <small>The user will be required to change their password on next login</small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submitResetPassword">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Reset Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-function addFilterListeners() {
-    const all = document.getElementById('filterAll');
-    const act = document.getElementById('filterActive');
-    const ina = document.getElementById('filterInactive');
-    function setActive(el) {
-        [all, act, ina].forEach(a => a && a.classList.remove('active'));
-        el && el.classList.add('active');
-    }
-    if (all) all.addEventListener('click', function(e){ e.preventDefault(); usersTable.column(6).search('').draw(); setActive(all); });
-    if (act) act.addEventListener('click', function(e){ e.preventDefault(); usersTable.column(6).search('^active$', true, false).draw(); setActive(act); });
-    if (ina) ina.addEventListener('click', function(e){ e.preventDefault(); usersTable.column(6).search('^inactive$', true, false).draw(); setActive(ina); });
-}
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade modal-blur" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-sm" style="margin-top: 100px;">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="modal-icon text-danger">
+                            <i class="bi bi-trash"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title">Confirm Delete</h5>
+                            <p class="text-muted mb-0">This action cannot be undone</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div class="text-center mb-4">
+                        <div class="delete-icon">
+                            <i class="bi bi-trash"></i>
+                        </div>
+                        <h6 class="mt-3 mb-2" id="deleteUserName"></h6>
+                        <p class="text-muted mb-3">User Account</p>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <span id="deleteWarningText">Are you sure you want to delete this user account?</span>
+                        </div>
+                        <div class="alert alert-danger d-none" id="deleteForbidden">
+                            <i class="bi bi-shield-exclamation me-2"></i>
+                            Cannot delete active administrators or users with active sessions
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="delete_reason" class="form-label">Reason for Deletion (Optional)</label>
+                        <textarea class="form-control modern-textarea" id="delete_reason" rows="2" placeholder="Enter reason..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteUser">
+                        <i class="bi bi-trash me-1"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>window.CONTEXT_PATH='${pageContext.request.contextPath}';</script>
+<script src="${pageContext.request.contextPath}/assets/js/accounts.js"></script>

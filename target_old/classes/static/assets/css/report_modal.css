@@ -1,0 +1,245 @@
+/* Enhanced Modal Styles to Match Dashboard */
+#reportModal .modal-content {
+    border-radius: 24px !important;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+#reportModal .modal-header {
+    padding: 1.5rem 2rem !important;
+}
+
+#reportModal .modal-body {
+    padding: 0 !important;
+}
+
+/* Glass Card Enhancement */
+#reportModal .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    border-radius: 16px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+#reportModal .glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+/* Form Controls */
+#reportModal .form-select-sm {
+    border-radius: 12px !important;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.9) !important;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+}
+
+#reportModal .form-control-sm {
+    border-radius: 12px !important;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+#reportModal .form-select-sm:focus, 
+#reportModal .form-control-sm:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Button Styles */
+#reportModal .btn-sm {
+    border-radius: 12px !important;
+    padding: 0.375rem 0.875rem !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#reportModal .btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%) !important;
+    border: none !important;
+}
+
+#reportModal .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.4);
+}
+
+#reportModal .btn-outline-secondary {
+    border: 1px solid #e2e8f0 !important;
+    color: #64748b;
+}
+
+#reportModal .btn-outline-secondary:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1 !important;
+}
+
+/* Badge Styles */
+#reportModal .badge {
+    font-weight: 500;
+    padding: 0.35rem 0.85rem;
+}
+
+/* Priority Filter Buttons */
+#reportModal .priority-filter-item .btn-check:checked + .btn {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+}
+
+#reportModal .priority-filter-item .btn-check:not(:checked) + .btn {
+    background: #f1f5f9 !important;
+    color: #94a3b8 !important;
+    opacity: 0.7;
+}
+
+/* Form Switch Custom */
+#reportModal .form-switch-custom .form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+    cursor: pointer;
+}
+
+#reportModal .form-switch-custom .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Preview Canvas */
+#reportModal .report-preview-canvas {
+    background: white;
+    min-height: 100%;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    padding: 2.5rem;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#reportModal .report-header-badge {
+    animation: fadeInDown 0.5s ease-out;
+}
+
+/* Original Report Modal Styles */
+.report-modal-content {
+  border-radius: 1.25rem;
+  overflow: hidden;
+}
+
+.report-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-config-panel {
+  border-right: 1px solid var(--border-color);
+  scrollbar-width: thin;
+}
+
+.report-section .form-label {
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
+}
+
+.smaller {
+  font-size: 0.75rem;
+}
+
+.report-preview-panel {
+  background-color: #f1f5f9;
+}
+
+.report-preview-canvas {
+  background-color: white;
+  min-height: 29.7cm; /* A4 Ratio approx */
+  width: 21cm;
+  padding: 2cm;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 992px) {
+  .report-config-panel {
+    max-width: 100% !important;
+    max-height: 400px !important;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .report-preview-canvas {
+    width: 100%;
+    padding: 1rem;
+  }
+}
+
+.btn-check:checked + .btn-outline-danger {
+  background-color: var(--danger-color);
+  color: white;
+}
+.btn-check:checked + .btn-outline-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+.btn-check:checked + .btn-outline-info {
+  background-color: var(--info-color);
+  color: white;
+}
+
+.export-actions-bar {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 1rem;
+  z-index: 10;
+}
+
+[data-theme="dark"] .report-modal-content {
+  background-color: #1e293b;
+}
+
+[data-theme="dark"] .report-config-panel {
+  background-color: #0f172a !important;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .report-preview-panel {
+  background-color: #1e293b;
+}
+
+[data-theme="dark"] .report-preview-canvas {
+  background-color: #fff; /* Keep preview white for better PDF representation */
+  color: #333;
+}
+
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .preview-header {
+  border-color: #334155;
+}
+
+.report-preview-canvas h2 {
+  letter-spacing: 2px;
+  color: #1e293b;
+}

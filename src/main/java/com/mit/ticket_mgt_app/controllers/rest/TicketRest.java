@@ -43,6 +43,61 @@ public class TicketRest {
         this.ticketService = ticketService;
     }
 
+    @PostMapping("/get_org_archived_tasks")
+    public ResponseEntity<?> getOrgArchivedTasks(@RequestBody Map<String, Object> payload, HttpSession session) {
+        try {
+            // Add user info to payload if available
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                if (userInfo != null) {
+                    if (userInfo.get("org_id") != null)
+                        payload.put("org_id", userInfo.get("org_id"));
+                    if (userInfo.get("id") != null)
+                        payload.put("user_id", userInfo.get("id"));
+                }
+            } catch (Exception ignore) {
+            }
+
+            JSONObject obj = new JSONObject(payload);
+            String res = ticketService.getOrgArchivedTasks(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to get archived tasks: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/fetch_archived_tickets")
+    public ResponseEntity<?> fetchArchivedTickets(@RequestBody Map<String, Object> payload, HttpSession session) {
+        try {
+            // Add user info to payload if available
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                if (userInfo != null) {
+                    if (userInfo.get("org_id") != null)
+                        payload.put("org_id", userInfo.get("org_id"));
+                    if (userInfo.get("id") != null)
+                        payload.put("user_id", userInfo.get("id"));
+                }
+            } catch (Exception ignore) {
+            }
+
+            JSONObject obj = new JSONObject(payload);
+            String res = ticketService.fetchArchivedTickets(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch archived tickets: " + e.getMessage()
+                            + "\"}");
+        }
+    }
+
     // @Autowired
     // private isAuthenticatedUtil isAuthenticatedUtil;
 
@@ -55,11 +110,12 @@ public class TicketRest {
     @GetMapping("/all")
     public ResponseEntity<?> getAllTickets(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getAllTickets( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getAllTickets(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
 
             return ResponseEntity.ok(webServiceResponse);
@@ -75,7 +131,8 @@ public class TicketRest {
     @GetMapping("/list")
     public ResponseEntity<?> listTickets(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             Integer userId = null;
@@ -90,7 +147,7 @@ public class TicketRest {
             }
 
             webServiceResponse = ticketService.getAllTickets(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     userId);
             return ResponseEntity.ok(webServiceResponse);
@@ -105,7 +162,8 @@ public class TicketRest {
     @PostMapping("/list")
     public ResponseEntity<?> listTicketsPost(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             Integer userId = null;
@@ -120,7 +178,7 @@ public class TicketRest {
             }
 
             webServiceResponse = ticketService.getAllTickets(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     userId);
             return ResponseEntity.ok(webServiceResponse);
@@ -132,10 +190,152 @@ public class TicketRest {
         }
     }
 
+    @PostMapping("/get_system_dashboard_data")
+    public ResponseEntity<?> getSystemDashboardData(
+            @RequestBody java.util.Map<String, Object> payload,
+            HttpSession session) {
+        try {
+            logger.info("getSystemDashboardData payload: " + payload);
+            String startDate = (String) payload.get("start_date");
+            String endDate = (String) payload.get("end_date");
+
+            String response = ticketService.getSystemDashboardData(
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    startDate,
+                    endDate);
+
+            if (response == null || response.trim().isEmpty()) {
+                return ResponseEntity.ok("[]");
+            }
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.severe("Error fetching system dashboard data: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch system dashboard data: "
+                            + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/get_user_org_dashboard_data")
+    public ResponseEntity<?> getUserOrgDashboardData(
+            @RequestBody java.util.Map<String, Object> payload,
+            HttpSession session) {
+        try {
+            logger.info("getUserOrgDashboardData payload: " + payload);
+            String startDate = (String) payload.get("start_date");
+            String endDate = (String) payload.get("end_date");
+
+            // Get user info from session
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session.getAttribute("userInfo");
+            String userId = null;
+            String orgId = null;
+
+            if (userInfo != null) {
+                logger.info("Session userInfo keys: " + userInfo.keySet());
+                if (userInfo.get("unique_id") != null) {
+                    userId = userInfo.get("unique_id").toString();
+                }
+
+                // Try multiple keys for organization ID
+                if (userInfo.get("org_id") != null) {
+                    orgId = userInfo.get("org_id").toString();
+                } else if (userInfo.get("organization_id") != null) {
+                    orgId = userInfo.get("organization_id").toString();
+                } else if (userInfo.get("organizationId") != null) {
+                    orgId = userInfo.get("organizationId").toString();
+                } else if (userInfo.get("company_id") != null) {
+                    orgId = userInfo.get("company_id").toString();
+                } else if (userInfo.get("business_id") != null) {
+                    orgId = userInfo.get("business_id").toString();
+                }
+            } else {
+                logger.warning("Session userInfo is NULL");
+            }
+
+            // Allow override from payload if needed
+            if (payload.containsKey("org_id") && payload.get("org_id") != null) {
+                String payloadOrgId = payload.get("org_id").toString();
+                if (!payloadOrgId.trim().isEmpty()) {
+                    orgId = payloadOrgId;
+                }
+            } else if (payload.containsKey("organization_id") && payload.get("organization_id") != null) {
+                String payloadOrgId = payload.get("organization_id").toString();
+                if (!payloadOrgId.trim().isEmpty()) {
+                    orgId = payloadOrgId;
+                }
+            }
+
+            logger.info("Resolved orgId for dashboard: " + orgId + ", userId: " + userId);
+
+            String response = ticketService.getUserOrgDashboardData(
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    userId,
+                    orgId,
+                    startDate,
+                    endDate);
+
+            if (response == null || response.trim().isEmpty()) {
+                return ResponseEntity.ok()
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .body("{}");
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(response);
+        } catch (Exception e) {
+            logger.severe("Error fetching user org dashboard data: " + e.getMessage());
+            return ResponseEntity.status(500)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch dashboard data: " + e.getMessage()
+                            + "\"}");
+        }
+    }
+
+    @PostMapping("/get_tickets_list_for_dashboard")
+    public ResponseEntity<?> getTicketsListForDashboard(
+            @RequestBody java.util.Map<String, Object> payload,
+            HttpSession session) {
+        try {
+            String startDate = (String) payload.get("start_date");
+            String endDate = (String) payload.get("end_date");
+            Integer limit = payload.containsKey("limit") ? Integer.parseInt(payload.get("limit").toString()) : null;
+
+            String response = ticketService.getTicketsListForDashboard(
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    startDate,
+                    endDate,
+                    limit);
+
+            if (response == null || response.trim().isEmpty()) {
+                logger.warning("Tickets list for dashboard service returned empty response");
+                return ResponseEntity.ok()
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .body("{}");
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body(response);
+        } catch (Exception e) {
+            logger.severe("Error fetching tickets list for dashboard: " + e.getMessage());
+            return ResponseEntity.status(500)
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch tickets list: " + e.getMessage()
+                            + "\"}");
+        }
+    }
+
     @GetMapping("/{ticketId}")
     public ResponseEntity<?> getTicketById(@PathVariable String ticketId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -143,7 +343,7 @@ public class TicketRest {
             requestJson.put("ticket_id", ticketId);
 
             webServiceResponse = ticketService.getTicketById(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     requestJson.toString());
 
@@ -160,7 +360,8 @@ public class TicketRest {
     @GetMapping("/users_for_assignment")
     public ResponseEntity<?> usersForAssignment(HttpSession session, HttpServletRequest request) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject();
@@ -175,7 +376,7 @@ public class TicketRest {
             }
 
             webServiceResponse = ticketService.getUsersForAssignment(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
             return ResponseEntity.ok(webServiceResponse);
@@ -264,7 +465,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.createTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -292,39 +493,45 @@ public class TicketRest {
     }
 
     // @PostMapping(value = "/create", consumes = "application/json")
-    // public ResponseEntity<?> createTicketJson(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
-    //     if (!isAuthenticatedUtil.isAuthenticated(session)) {
-    //         return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
-    //     }
-    //     try {
-    //         org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-    //         try {
-    //             @SuppressWarnings("unchecked")
-    //             java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
-    //                     .getAttribute("userInfo");
-    //             if (userInfo != null && userInfo.get("id") != null) {
-    //                 obj.put("created_by", Integer.parseInt(userInfo.get("id").toString()));
-    //             }
-    //         } catch (Exception ignore) {
-    //         }
+    // public ResponseEntity<?> createTicketJson(@RequestBody java.util.Map<String,
+    // Object> payload, HttpSession session) {
+    // if (!isAuthenticatedUtil.isAuthenticated(session)) {
+    // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+    // \"SESSION_INVALID.\"}");
+    // }
+    // try {
+    // org.codehaus.jettison.json.JSONObject obj = new
+    // org.codehaus.jettison.json.JSONObject(payload);
+    // try {
+    // @SuppressWarnings("unchecked")
+    // java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>)
+    // session
+    // .getAttribute("userInfo");
+    // if (userInfo != null && userInfo.get("id") != null) {
+    // obj.put("created_by", Integer.parseInt(userInfo.get("id").toString()));
+    // }
+    // } catch (Exception ignore) {
+    // }
 
-    //         webServiceResponse = ticketService.createTicket(
-    //                  wsURLConfig.getWeb_service_url_ser(),
-    //                 wsURLConfig.getWeb_service_url_ser_api_key(),
-    //                 obj.toString());
+    // webServiceResponse = ticketService.createTicket(
+    // wsURLConfig.getWeb_service_url_ser(),
+    // wsURLConfig.getWeb_service_url_ser_api_key(),
+    // obj.toString());
 
-    //         return ResponseEntity.ok(webServiceResponse);
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         return ResponseEntity.status(500)
-    //                 .body("{\"status\": \"error\", \"message\": \"Failed to create ticket: " + e.getMessage() + "\"}");
-    //     }
+    // return ResponseEntity.ok(webServiceResponse);
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // return ResponseEntity.status(500)
+    // .body("{\"status\": \"error\", \"message\": \"Failed to create ticket: " +
+    // e.getMessage() + "\"}");
+    // }
     // }
 
     @PostMapping(value = "/create", consumes = "application/json")
     public ResponseEntity<?> createTicketJson(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
@@ -339,7 +546,7 @@ public class TicketRest {
             }
 
             webServiceResponse = ticketService.createTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -355,7 +562,8 @@ public class TicketRest {
     public ResponseEntity<?> getCreateTicketContext(@RequestParam(required = false) String org_id,
             HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             @SuppressWarnings("unchecked")
@@ -365,7 +573,7 @@ public class TicketRest {
                 userId = Integer.parseInt(userInfo.get("id").toString());
             }
             webServiceResponse = ticketService.getCreateTicketContext(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     userId,
                     org_id);
@@ -412,7 +620,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.updateTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -478,7 +686,7 @@ public class TicketRest {
             }
 
             webServiceResponse = ticketService.getTicketById(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
             return webServiceResponse;
@@ -529,7 +737,7 @@ public class TicketRest {
 
     // // Call web service
     // webServiceResponse = ticketService.archiveTicket(
-    //  wsURLConfig.getWeb_service_url_ser(),
+    // wsURLConfig.getWeb_service_url_ser(),
     // wsURLConfig.getWeb_service_url_ser_api_key(),
     // obj.toString()
     // );
@@ -599,7 +807,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.select_get_active_all_task(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -662,11 +870,12 @@ public class TicketRest {
     @GetMapping("/{ticketId}/comments")
     public ResponseEntity<?> getTicketComments(@PathVariable String ticketId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getTicketComments( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getTicketComments(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     ticketId);
 
@@ -685,7 +894,8 @@ public class TicketRest {
             @RequestBody Map<String, Object> commentData,
             HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -696,7 +906,7 @@ public class TicketRest {
             commentData.put("ticket_id", ticketId);
             commentData.put("user_id", userId);
 
-            webServiceResponse = ticketService.addTicketComment( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.addTicketComment(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     commentData);
 
@@ -713,11 +923,12 @@ public class TicketRest {
     @GetMapping("/{ticketId}/history")
     public ResponseEntity<?> getTicketHistory(@PathVariable String ticketId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getTicketHistory( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getTicketHistory(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     ticketId);
 
@@ -734,11 +945,12 @@ public class TicketRest {
     @GetMapping("/priorities")
     public ResponseEntity<?> getPriorities(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getPriorities( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getPriorities(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
 
             return ResponseEntity.ok(webServiceResponse);
@@ -754,11 +966,12 @@ public class TicketRest {
     @GetMapping("/statuses")
     public ResponseEntity<?> getStatuses(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getStatuses( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getStatuses(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
 
             return ResponseEntity.ok(webServiceResponse);
@@ -774,10 +987,22 @@ public class TicketRest {
     @PostMapping("/statuses/list")
     public ResponseEntity<?> listStatuses(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = ticketService.getStatusesMgt( wsURLConfig.getWeb_service_url_ser(),
+            // Get user info if available, but don't fail if not
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
+                        .getAttribute("userInfo");
+                // Log for debug but continue
+                // if (userInfo == null) logger.warning("Session userInfo is null in
+                // listStatuses");
+            } catch (Exception ignore) {
+            }
+
+            webServiceResponse = ticketService.getStatuses(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -790,11 +1015,12 @@ public class TicketRest {
     @PostMapping("/statuses/add")
     public ResponseEntity<?> addStatus(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.addStatus( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.addStatus(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -807,11 +1033,12 @@ public class TicketRest {
     @PostMapping("/statuses/update")
     public ResponseEntity<?> updateStatus(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.updateStatus( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.updateStatus(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -824,11 +1051,12 @@ public class TicketRest {
     @PostMapping("/statuses/delete")
     public ResponseEntity<?> deleteStatus(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.deleteStatus( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.deleteStatus(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -841,11 +1069,12 @@ public class TicketRest {
     @PostMapping("/statuses/get_by_id")
     public ResponseEntity<?> getStatusById(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.getStatusById( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getStatusById(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -858,11 +1087,12 @@ public class TicketRest {
     @GetMapping("/departments")
     public ResponseEntity<?> getDepartments(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getDepartments( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getDepartments(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
 
             return ResponseEntity.ok(webServiceResponse);
@@ -879,11 +1109,12 @@ public class TicketRest {
     public ResponseEntity<?> getCategories(@RequestParam(required = false) String departmentId,
             HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
-            webServiceResponse = ticketService.getCategories( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getCategories(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     departmentId);
 
@@ -893,7 +1124,7 @@ public class TicketRest {
             logger.severe("Error fetching categories: " + e.getMessage());
             e.printStackTrace();
             try {
-                webServiceResponse = ticketService.getCategoriesMgt( wsURLConfig.getWeb_service_url_ser(),
+                webServiceResponse = ticketService.getCategoriesMgt(wsURLConfig.getWeb_service_url_ser(),
                         wsURLConfig.getWeb_service_url_ser_api_key());
                 return ResponseEntity.ok(webServiceResponse);
             } catch (Exception e2) {
@@ -907,10 +1138,19 @@ public class TicketRest {
     @PostMapping("/categories/list")
     public ResponseEntity<?> listCategories(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = ticketService.getCategoriesMgt( wsURLConfig.getWeb_service_url_ser(),
+            // Get user info if available, but don't fail if not
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
+                        .getAttribute("userInfo");
+            } catch (Exception ignore) {
+            }
+
+            webServiceResponse = ticketService.getCategoriesMgt(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -924,11 +1164,12 @@ public class TicketRest {
     @PostMapping("/categories/add")
     public ResponseEntity<?> addCategory(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.addCategory( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.addCategory(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -941,11 +1182,12 @@ public class TicketRest {
     @PostMapping("/categories/delete")
     public ResponseEntity<?> deleteCategory(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.deleteCategory( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.deleteCategory(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -959,10 +1201,19 @@ public class TicketRest {
     @PostMapping("/priorities/list")
     public ResponseEntity<?> listPriorities(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = ticketService.getPrioritiesMgt( wsURLConfig.getWeb_service_url_ser(),
+            // Get user info if available, but don't fail if not
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
+                        .getAttribute("userInfo");
+            } catch (Exception ignore) {
+            }
+
+            webServiceResponse = ticketService.getPrioritiesMgt(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -976,11 +1227,12 @@ public class TicketRest {
     @PostMapping("/priorities/add")
     public ResponseEntity<?> addPriority(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.addPriority( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.addPriority(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -993,11 +1245,12 @@ public class TicketRest {
     @PostMapping("/priorities/delete")
     public ResponseEntity<?> deletePriority(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = ticketService.deletePriority( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.deletePriority(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -1013,7 +1266,8 @@ public class TicketRest {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -1021,7 +1275,7 @@ public class TicketRest {
             Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
             Integer userId = Integer.parseInt(userInfo.get("id").toString());
 
-            webServiceResponse = ticketService.getUserTickets( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getUserTickets(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     userId,
                     page,
@@ -1042,7 +1296,8 @@ public class TicketRest {
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -1050,7 +1305,7 @@ public class TicketRest {
             Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
             Integer userId = Integer.parseInt(userInfo.get("id").toString());
 
-            webServiceResponse = ticketService.getTicketsAssignedToUser( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getTicketsAssignedToUser(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     userId,
                     page,
@@ -1072,7 +1327,8 @@ public class TicketRest {
             @RequestBody Map<String, Object> closeData,
             HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -1083,7 +1339,7 @@ public class TicketRest {
             closeData.put("ticket_id", ticketId);
             closeData.put("closed_by", userId);
 
-            webServiceResponse = ticketService.closeTicket( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.closeTicket(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     closeData);
 
@@ -1101,7 +1357,8 @@ public class TicketRest {
     public ResponseEntity<?> reopenTicket(@PathVariable String ticketId,
             HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -1109,7 +1366,7 @@ public class TicketRest {
             Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
             Integer userId = Integer.parseInt(userInfo.get("id").toString());
 
-            webServiceResponse = ticketService.reopenTicket( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.reopenTicket(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     ticketId,
                     userId);
@@ -1127,7 +1384,8 @@ public class TicketRest {
     @GetMapping("/stats")
     public ResponseEntity<?> getTicketStats(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -1141,7 +1399,7 @@ public class TicketRest {
             } catch (Exception ignore) {
             }
 
-            webServiceResponse = ticketService.getTicketStats( wsURLConfig.getWeb_service_url_ser(),
+            webServiceResponse = ticketService.getTicketStats(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), userId);
 
             return ResponseEntity.ok(webServiceResponse);
@@ -1150,7 +1408,7 @@ public class TicketRest {
             logger.severe("Error fetching ticket stats: " + e.getMessage());
             e.printStackTrace();
             try {
-                String listStr = ticketService.getAllTickets( wsURLConfig.getWeb_service_url_ser(),
+                String listStr = ticketService.getAllTickets(wsURLConfig.getWeb_service_url_ser(),
                         wsURLConfig.getWeb_service_url_ser_api_key());
                 int open = 0, inProgress = 0, resolved = 0, closed = 0;
                 JSONArray arr = null;
@@ -1236,7 +1494,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.editTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -1286,7 +1544,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.assignTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 
@@ -1361,7 +1619,7 @@ public class TicketRest {
 
             // Call web service
             webServiceResponse = ticketService.archiveTicket(
-                     wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
 

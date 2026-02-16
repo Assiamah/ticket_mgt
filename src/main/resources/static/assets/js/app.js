@@ -62,6 +62,78 @@ function initializeAppFeatures() {
     });
   });
 
+  // Sidebar and Theme Toggle Functionality
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  const body = document.body;
+  const toggleModeBtn = document.getElementById("toggleMode");
+  const html = document.documentElement;
+
+  // Sidebar Toggle
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener("click", function() {
+      sidebar.classList.toggle("collapsed");
+      body.classList.toggle("sidebar-collapsed");
+      
+      // Update icon
+      const icon = sidebarToggle.querySelector("i");
+      if (sidebar.classList.contains("collapsed")) {
+        icon.classList.replace("bi-chevron-left", "bi-chevron-right");
+      } else {
+        icon.classList.replace("bi-chevron-right", "bi-chevron-left");
+      }
+      
+      // Store state
+      localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
+    });
+
+    // Restore sidebar state
+    if (localStorage.getItem("sidebar-collapsed") === "true") {
+      sidebar.classList.add("collapsed");
+      body.classList.add("sidebar-collapsed");
+      const icon = sidebarToggle.querySelector("i");
+      if (icon) icon.classList.replace("bi-chevron-left", "bi-chevron-right");
+    }
+  }
+
+  // Theme Toggle
+  if (toggleModeBtn) {
+    toggleModeBtn.addEventListener("click", function() {
+      const currentTheme = html.getAttribute("data-theme") || "light";
+      const newTheme = currentTheme === "light" ? "dark" : "light";
+      
+      html.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+      
+      // Update icons
+      const lightIcon = toggleModeBtn.querySelector(".light-icon");
+      const darkIcon = toggleModeBtn.querySelector(".dark-icon");
+      
+      if (newTheme === "dark") {
+        lightIcon.classList.add("d-none");
+        darkIcon.classList.remove("d-none");
+      } else {
+        lightIcon.classList.remove("d-none");
+        darkIcon.classList.add("d-none");
+      }
+      
+      // Dispatch event for components that need to know about theme change (like ECharts)
+      window.dispatchEvent(new CustomEvent("themeChanged", { detail: { theme: newTheme } }));
+    });
+
+    // Restore theme
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      html.setAttribute("data-theme", savedTheme);
+      const lightIcon = toggleModeBtn.querySelector(".light-icon");
+      const darkIcon = toggleModeBtn.querySelector(".dark-icon");
+      if (savedTheme === "dark") {
+        lightIcon?.classList.add("d-none");
+        darkIcon?.classList.remove("d-none");
+      }
+    }
+  }
+
   function searchListUpdate(customMenus) {
     customMenus.forEach((item) => {
       const li = document.createElement("li");

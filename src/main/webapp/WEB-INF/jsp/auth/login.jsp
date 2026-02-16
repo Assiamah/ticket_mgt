@@ -26,6 +26,7 @@
                     <h3 class="fw-medium text-center">Welcome back!</h3>
                     <p class="mb-8 text-muted text-center">Create Your Account in Minutes</p>
                     <form method="post" action="${pageContext.request.contextPath}/user_authentication" id="loginForm">
+                        <input type="hidden" name="coordinates" id="coordinates">
                         <div class="mb-4">
                             <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" name="email" id="email" placeholder="Enter your email" required>

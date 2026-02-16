@@ -9,10 +9,10 @@
     <meta content="Pixeleyez" name="author" />
     
     <!-- layout setup -->
-    <script type="module" src="${pageContext.request.contextPath}/assets/js/layout-setup.js"></script>
+    <!-- <script type="module" src="${pageContext.request.contextPath}/assets/js/layout-setup.js"></script> -->
     
     <!-- App favicon -->
-    <link rel="shortcut icon" href="${pageContext.request.contextPath}/assets/images/favicon.png">    
+    <link rel="shortcut icon" href="${pageContext.request.contextPath}/assets/images/favicon.png">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/libs/gridjs/theme/mermaid.min.css">
     <!-- Simplebar Css -->
     <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/libs/simplebar/simplebar.min.css">
@@ -26,7 +26,8 @@
     <link href="${pageContext.request.contextPath}/assets/css/icons.min.css" rel="stylesheet" type="text/css">
     <!-- App Css-->
     <link href="${pageContext.request.contextPath}/assets/css/app.min.css" id="app-style" rel="stylesheet" type="text/css">
-    <link href="${pageContext.request.contextPath}/assets/css/custom.css" id="app-style" rel="stylesheet" type="text/css">
+    <link href="${pageContext.request.contextPath}/assets/css/custom.css" rel="stylesheet" type="text/css">
+    <link href="${pageContext.request.contextPath}/assets/css/main.css" rel="stylesheet" type="text/css">
     <link href="${pageContext.request.contextPath}/assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css">
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -40,6 +41,9 @@
     <link href="${pageContext.request.contextPath}/assets/libs/datatables.net-select-bs5/css/select.bootstrap5.min.css" rel="stylesheet" type="text/css" />
 
     <!-- Javascript -->
+    <script>
+        window.CONTEXT_PATH = '${pageContext.request.contextPath}';
+    </script>
     <script src="${pageContext.request.contextPath}/assets/js/jquery.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
@@ -70,7 +74,7 @@
         <!-- End Scroll Top -->
          
         <!-- Begin Footer -->
-        <jsp:include page="../components/sidebar.jsp"></jsp:include>
+        <jsp:include page="../components/footer.jsp"></jsp:include>
         <!-- End Footer -->
 
 
@@ -90,7 +94,8 @@
     <!-- File js -->
     <!-- <script src="${pageContext.request.contextPath}/assets/js/dashboard/e-commerce.init.js"></script> -->
     <!-- App js -->
-    <script type="module" src="${pageContext.request.contextPath}/assets/js/app.js"></script>
+    <!-- <script type="module" src="${pageContext.request.contextPath}/assets/js/app.js"></script> -->
+    <script src="${pageContext.request.contextPath}/assets/js/app.js"></script>
     <script src="${pageContext.request.contextPath}/assets/libs/sweetalert2/sweetalert2.all.min.js"></script>
 
     <!-- Select2 JS -->

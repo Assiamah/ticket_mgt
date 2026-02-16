@@ -41,41 +41,45 @@ import java.util.TimeZone;
 @Controller
 public class AuthController {
 
- 
-   // private  EncryptionUtil encryptionUtil;
-   // private  AuthService authService;
-    AuthService authService = new AuthService();
-    // private final BrowserDetection browserDetection;
-    // private final ClientIpAddress clientIpAddress;
-    // private final LocalMacAddress localMacAddress;
+    // private EncryptionUtil encryptionUtil;
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private ClientIpAddress clientIpAddress;
+
+    @Autowired
+    private BrowserDetection browserDetection;
+
+    public AuthController() {
+        System.out.println("AuthController initialized");
+    }
+
+    @Autowired
+    private LocalMacAddress localMacAddress;
 
     // public AuthController(WebServiceURLConfig wsURLConfig,
-    //         EncryptionUtil encryptionUtil,
-    //         AuthService authService,
-    //         BrowserDetection browserDetection,
-    //         ClientIpAddress clientIpAddress,
-    //         LocalMacAddress localMacAddress) {
-    //     this.wsURLConfig = wsURLConfig;
-    //     this.encryptionUtil = encryptionUtil;
-    //     this.authService = authService;
-    //     this.browserDetection = browserDetection;
-    //     this.clientIpAddress = clientIpAddress;
-    //     this.localMacAddress = localMacAddress;
+    // EncryptionUtil encryptionUtil,
+    // AuthService authService,
+    // BrowserDetection browserDetection,
+    // ClientIpAddress clientIpAddress,
+    // LocalMacAddress localMacAddress) {
+    // this.wsURLConfig = wsURLConfig;
+    // this.encryptionUtil = encryptionUtil;
+    // this.authService = authService;
+    // this.browserDetection = browserDetection;
+    // this.clientIpAddress = clientIpAddress;
+    // this.localMacAddress = localMacAddress;
     // }
 
     // @Autowired
     // private isAuthenticatedUtil isAuthenticatedUtil;
 
     @Autowired
-    private  WebServiceURLConfig wsURLConfig;
+    private WebServiceURLConfig wsURLConfig;
 
     @Autowired
     private MenuService menuService;
-
-    JSONObject authData = new JSONObject();
-    JSONArray arr = new JSONArray();
-
-    String webServiceResponse = "";
 
     @GetMapping("/")
     public String showIndexPage(Model model) {
@@ -123,9 +127,9 @@ public class AuthController {
         String password = request.getParameter("password");
 
         // Get Client IP Address
-      //  String ipAddress = clientIpAddress.getClientIpAddress(request);
-System.out.println(email);
-System.out.println(password);
+        String ipAddress = clientIpAddress.getClientIpAddress(request);
+        System.out.println(email);
+        System.out.println(password);
 
         // Get Server-side Geolocation
         String location = "Unknown";
@@ -137,13 +141,13 @@ System.out.println(password);
         }
 
         System.out.println(email);
-System.out.println(password);
+        System.out.println(password);
 
         // Timezone
         String timezone = TimeZone.getDefault().getID();
 
         // Device & Browser detection (basic from User-Agent)
-        String userAgent = request.getHeader("User-Agent").toLowerCase();
+        String userAgent = request.getHeader("User-Agent") != null ? request.getHeader("User-Agent").toLowerCase() : "";
         String deviceName = userAgent;
         String platform = userAgent.contains("windows") ? "Windows"
                 : userAgent.contains("mac") ? "Mac"
@@ -153,15 +157,14 @@ System.out.println(password);
         boolean isTablet = userAgent.contains("tablet");
         boolean isPhone = userAgent.contains("mobile");
         boolean isRobot = userAgent.contains("bot") || userAgent.contains("crawl") || userAgent.contains("spider");
-       // String browser = browserDetection.getDetectBrowser(userAgent);
-        //String macAddress = localMacAddress.getLocalMacAddress();
-
-            
+        String browser = browserDetection.getDetectBrowser(userAgent);
+        String macAddress = localMacAddress.getLocalMacAddress();
 
         // Build JSON request
+        JSONObject authData = new JSONObject();
         authData.put("email", email);
         authData.put("password", password);
-        authData.put("ip_address", "ipAddress");
+        authData.put("ip_address", ipAddress);
         authData.put("location", location);
         authData.put("timezone", timezone);
         authData.put("loc_coordinate", locCoordinate);
@@ -170,35 +173,50 @@ System.out.println(password);
         authData.put("isDesktop", isDesktop);
         authData.put("isTablet", isTablet);
         authData.put("isPhone", isPhone);
-        authData.put("browser", "browser");
+        authData.put("browser", browser);
         authData.put("isRobot", isRobot);
-        authData.put("mac_address", "macAddress");
-        authData.put("full_name", "full_name");
-
-
+        authData.put("mac_address", macAddress);
+        authData.put("full_name", email);
 
         String jsonRequest = authData.toString();
         System.out.println("how are you");
-     System.out.println(  wsURLConfig.getWeb_service_url_ser());
-     System.out.println( wsURLConfig.getWeb_service_url_ser_api_key());
-   System.out.println( jsonRequest);
+        System.out.println(wsURLConfig.getWeb_service_url_ser());
+        System.out.println(wsURLConfig.getWeb_service_url_ser_api_key());
+        System.out.println(jsonRequest);
 
-        webServiceResponse = authService.userLogin(
-                  wsURLConfig.getWeb_service_url_ser(), 
+        String webServiceResponse = authService.userLogin(
+                wsURLConfig.getWeb_service_url_ser(),
                 wsURLConfig.getWeb_service_url_ser_api_key(),
                 jsonRequest);
 
-                         System.out.println("webServiceResponse");
-                          System.out.println(webServiceResponse);
-        JSONObject resObj = new JSONObject(webServiceResponse);
+        System.out.println("webServiceResponse");
+        System.out.println(webServiceResponse);
 
-                     System.out.println(email);
-System.out.println(password);
-        boolean success = resObj.getBoolean("success");
+        if (webServiceResponse == null || webServiceResponse.trim().isEmpty()) {
+            model.addAttribute("error", "Service unavailable. Please try again later.");
+            return "redirect:/login?error=true";
+        }
 
+        JSONObject resObj;
+        try {
+            resObj = new JSONObject(webServiceResponse);
+        } catch (JSONException e) {
+            System.err.println("Failed to parse webServiceResponse: " + webServiceResponse);
+            model.addAttribute("error", "Invalid response from authentication service.");
+            return "redirect:/login?error=true";
+        }
+
+        System.out.println(email);
+        System.out.println(password);
+        boolean success = resObj.optBoolean("success", false);
 
         if (success) {
-            JSONObject resData = resObj.getJSONObject("data");
+            JSONObject resData = resObj.optJSONObject("data");
+            if (resData == null) {
+                model.addAttribute("error",
+                        resObj.optString("message", "Login failed. Please check your credentials."));
+                return "redirect:/login?error=true";
+            }
 
             // Store passKey with expiry metadata
             Map<String, Object> passKeyData = new HashMap<>();
@@ -214,8 +232,8 @@ System.out.println(password);
             // return "redirect:/dashboard";
             return "redirect:/login/2fa";
         } else {
-            String error = resObj.getString("error");
-            model.addAttribute("error", error);
+            String errorMessage = resObj.optString("message", "Invalid email or password.");
+            model.addAttribute("error", errorMessage);
             return "redirect:/login?error=true";
         }
     }
@@ -225,8 +243,9 @@ System.out.println(password);
             throws JSONException {
 
         // if (!isAuthenticatedUtil.loginAuthenticated(session)) {
-        //     model.addAttribute("sessionOut", "Authentication failed! Session has expired.");
-        //     return "redirect:/login?session=invalid";
+        // model.addAttribute("sessionOut", "Authentication failed! Session has
+        // expired.");
+        // return "redirect:/login?session=invalid";
         // }
 
         @SuppressWarnings("unchecked")
@@ -245,14 +264,20 @@ System.out.println(password);
         String enteredOtp = vc_1 + vc_2 + vc_3 + vc_4 + vc_5 + vc_6;
 
         // Build JSON request
+        JSONObject authData = new JSONObject();
         authData.put("unique_id", decryptedPassKey);
         authData.put("pin", enteredOtp);
 
         String jsonRequest = authData.toString();
-        webServiceResponse = authService.verifyOtp(
-                wsURLConfig.getWeb_service_url_ser(), 
+        String webServiceResponse = authService.verifyOtp(
+                wsURLConfig.getWeb_service_url_ser(),
                 wsURLConfig.getWeb_service_url_ser_api_key(),
                 jsonRequest);
+
+        if (webServiceResponse == null) {
+            model.addAttribute("error", "Service unavailable. Please try again later.");
+            return "redirect:/login/2fa";
+        }
 
         JSONObject resObj = new JSONObject(webServiceResponse);
 
@@ -261,22 +286,23 @@ System.out.println(password);
             JSONObject resData = resObj.getJSONObject("data");
             // System.out.println(resData);
             // Create authentication
-           
+
             // List<GrantedAuthority> authorities = new ArrayList<>();
             // authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
-            // UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-            //         resData.getString("email"),
-            //         null,
-            //         authorities);
+            // UsernamePasswordAuthenticationToken authentication = new
+            // UsernamePasswordAuthenticationToken(
+            // resData.getString("email"),
+            // null,
+            // authorities);
 
             // // Set authentication in SecurityContext
             // SecurityContextHolder.getContext().setAuthentication(authentication);
 
             // // Persist authentication in session (important!)
             // session.setAttribute(
-            //         "SPRING_SECURITY_CONTEXT",
-            //         SecurityContextHolder.getContext());
+            // "SPRING_SECURITY_CONTEXT",
+            // SecurityContextHolder.getContext());
 
             // Store encrypted passkey in session
             session.setAttribute(
@@ -353,7 +379,10 @@ System.out.println(password);
                     boolean exists = false;
                     for (Menu c : ticketChildren) {
                         if ("Manage Tickets".equalsIgnoreCase(c.getTitle())
-                                || "/tickets".equalsIgnoreCase(String.valueOf(c.getRoute()))) { exists = true; break; }
+                                || "/tickets".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
                     }
                     if (!exists) {
                         Menu child = new Menu();
@@ -370,7 +399,10 @@ System.out.println(password);
                     boolean exists = false;
                     for (Menu c : ticketChildren) {
                         if ("Create Ticket".equalsIgnoreCase(c.getTitle())
-                                || "/tickets/create".equalsIgnoreCase(String.valueOf(c.getRoute()))) { exists = true; break; }
+                                || "/tickets/create".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
                     }
                     if (!exists) {
                         Menu child = new Menu();
@@ -387,7 +419,10 @@ System.out.println(password);
                     boolean exists = false;
                     for (Menu c : ticketChildren) {
                         if ("Analytics".equalsIgnoreCase(c.getTitle())
-                                || "/tickets/analytics".equalsIgnoreCase(String.valueOf(c.getRoute()))) { exists = true; break; }
+                                || "/tickets/analytics".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
                     }
                     if (!exists) {
                         Menu child = new Menu();
@@ -404,7 +439,10 @@ System.out.println(password);
                     boolean exists = false;
                     for (Menu c : ticketChildren) {
                         if ("Archive".equalsIgnoreCase(c.getTitle())
-                                || "/tickets/archive".equalsIgnoreCase(String.valueOf(c.getRoute()))) { exists = true; break; }
+                                || "/tickets/archive".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
                     }
                     if (!exists) {
                         Menu child = new Menu();
@@ -416,11 +454,54 @@ System.out.println(password);
                         ticketChildren.add(child);
                     }
                 }
+                // My Tasks
+                {
+                    boolean exists = false;
+                    for (Menu c : ticketChildren) {
+                        if ("My Tasks".equalsIgnoreCase(c.getTitle())
+                                || "/tickets/my_tasks".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        Menu child = new Menu();
+                        child.setId(Math.abs(("My Tasks" + "/tickets/my_tasks").hashCode()));
+                        child.setTitle("My Tasks");
+                        child.setRoute("/tickets/my_tasks");
+                        child.setParentId(ticketsParent.getId());
+                        child.setPosition(ticketChildren.size() + 1);
+                        ticketChildren.add(child);
+                    }
+                }
+                // Assigned Jobs
+                {
+                    boolean exists = false;
+                    for (Menu c : ticketChildren) {
+                        if ("Assigned Jobs".equalsIgnoreCase(c.getTitle())
+                                || "/tickets/assigned_jobs".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        Menu child = new Menu();
+                        child.setId(Math.abs(("Assigned Jobs" + "/tickets/assigned_jobs").hashCode()));
+                        child.setTitle("Assigned Jobs");
+                        child.setRoute("/tickets/assigned_jobs");
+                        child.setParentId(ticketsParent.getId());
+                        child.setPosition(ticketChildren.size() + 1);
+                        ticketChildren.add(child);
+                    }
+                }
                 {
                     boolean exists = false;
                     for (Menu c : ticketChildren) {
                         if ("Categories".equalsIgnoreCase(c.getTitle())
-                                || "/tickets/categories".equalsIgnoreCase(String.valueOf(c.getRoute()))) { exists = true; break; }
+                                || "/tickets/categories".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
                     }
                     if (!exists) {
                         Menu child = new Menu();
@@ -512,6 +593,48 @@ System.out.println(password);
                     prof.setPosition(9);
                     menuTree.add(prof);
                 }
+
+                // Ensure Organizations with Org Archive
+                Menu orgParent = null;
+                for (Menu m : menuTree) {
+                    if ("Organizations".equalsIgnoreCase(m.getTitle())
+                            || "/organizations".equalsIgnoreCase(String.valueOf(m.getRoute()))) {
+                        orgParent = m;
+                        break;
+                    }
+                }
+                if (orgParent == null) {
+                    orgParent = new Menu();
+                    orgParent.setId(9020);
+                    orgParent.setTitle("Organizations");
+                    orgParent.setRoute("/organizations");
+                    orgParent.setIcon("ri-building-line");
+                    orgParent.setCategory(null);
+                    orgParent.setParentId(null);
+                    orgParent.setPosition(40);
+                    menuTree.add(orgParent);
+                }
+                java.util.List<Menu> orgChildren = orgParent.getChildren();
+                // Org Archive
+                {
+                    boolean exists = false;
+                    for (Menu c : orgChildren) {
+                        if ("Org Archive".equalsIgnoreCase(c.getTitle())
+                                || "/organizations/archive".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        Menu child = new Menu();
+                        child.setId(Math.abs(("Org Archive" + "/organizations/archive").hashCode()));
+                        child.setTitle("Org Archive");
+                        child.setRoute("/organizations/archive");
+                        child.setParentId(orgParent.getId());
+                        child.setPosition(orgChildren.size() + 1);
+                        orgChildren.add(child);
+                    }
+                }
             } catch (Exception ignore) {
             }
 
@@ -522,8 +645,10 @@ System.out.println(password);
             Map<String, Object> userInfo = null;
             try {
                 ObjectMapper mapper = new ObjectMapper();
+                String infoStr = resData.getString("info");
+                System.out.println("DEBUG: AuthController raw info: " + infoStr);
                 userInfo = mapper.readValue(
-                        resData.getString("info"),
+                        infoStr,
                         new TypeReference<Map<String, Object>>() {
                         });
                 session.setAttribute("userInfo", userInfo);

@@ -89,11 +89,11 @@
                     <div class="row g-3 mt-1">
                         <div class="col-md-6">
                             <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password">
                         </div>
                         <div class="col-md-6">
                             <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required autocomplete="new-password">
                         </div>
                     </div>
 

@@ -59,10 +59,15 @@ public class UserRest {
         // }
 
         try {
+            // Get current user unique ID from session
+            @SuppressWarnings("unchecked")
+            Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+            String currentUserUniqueId = userInfo != null ? (String) userInfo.get("unique_id") : null;
+
             // Call service to get users with pagination and search
             webServiceResponse = userService.loadUsers( wsURLConfig.getWeb_service_url_ser(), 
                                                    wsURLConfig.getWeb_service_url_ser_api_key(), 
-                                                   page, limit, search);
+                                                   page, limit, search, currentUserUniqueId);
             
             return ResponseEntity.ok(webServiceResponse);
             

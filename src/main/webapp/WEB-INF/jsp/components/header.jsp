@@ -1,244 +1,863 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
- <header class="app-header" id="appHeader">
-    <div class="container-fluid w-100">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="d-inline-flex align-items-center gap-2">
-                <a href="index.html" class="align-items-end logo-main d-none me-5">
-                    <img height="35" width="34" class="logo-dark" alt="Dark Logo" src="assets/images/logo-md.png">
-                    <h3 class="text-body-emphasis fw-bolder mb-0 ms-1">Urbix</h3>
-                </a>
-                <button type="button" class="vertical-toggle btn header-btn" id="toggleSidebar" aria-label="Toggle Sidebar">
-                    <i class="bi bi-arrow-bar-left header-icon"></i>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+
+<style>
+    /* Global Theme Variables - Matched with Sidebar */
+    :root {
+        --sidebar-expanded: 280px;
+        --sidebar-collapsed: 80px;
+        --header-height: 70px;
+        --sidebar-width: var(--sidebar-expanded);
+        --sidebar-collapsed-width: var(--sidebar-collapsed);
+        --primary-color: #6366f1;
+        --primary-hover: #4f46e5;
+        --primary-subtle: #eef2ff;
+        --danger-color: #ef4444;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --bg-light: #ffffff;
+        --bg-dark: #1e293b;
+        --text-light: #64748b;
+        --text-dark: #94a3b8;
+        --text-active-light: #1e293b;
+        --text-active-dark: #f1f5f9;
+        --border-light: #e2e8f0;
+        --border-dark: #334155;
+        --hover-bg-light: #f8fafc;
+        --hover-bg-dark: #334155;
+        --active-bg-light: #eef2ff;
+        --active-bg-dark: #475569;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header Container - Synchronized with Sidebar */
+    header.app-header#appHeader {
+        position: fixed !important;
+        top: 0 !important;
+        left: var(--sidebar-expanded) !important;
+        right: 0 !important;
+        height: var(--header-height) !important;
+        background: var(--bg-light) !important;
+        border-bottom: 1px solid var(--border-light) !important;
+        z-index: 1000 !important;
+        transition: var(--transition) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader {
+        background: var(--bg-dark) !important;
+        border-bottom: 1px solid var(--border-dark) !important;
+    }
+
+    /* Header Adjustment for Collapsed Sidebar */
+    body.sidebar-collapsed header.app-header#appHeader {
+        left: var(--sidebar-collapsed) !important;
+    }
+
+    @media (max-width: 768px) {
+        header.app-header#appHeader {
+            left: 0 !important;
+        }
+    }
+    .app-wrapper {
+        padding-top: calc(1.5rem + var(--header-height)) !important;
+        margin-left: var(--sidebar-width) !important;
+    }
+    body.sidebar-collapsed .app-wrapper {
+        margin-left: var(--sidebar-collapsed-width) !important;
+    }
+    @media (max-width: 768px) {
+        .app-wrapper { margin-left: 0 !important; }
+    }
+
+    /* Header Inner Container */
+    header.app-header#appHeader .header-container {
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    /* Header Left Section */
+    header.app-header#appHeader .header-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 16px !important;
+        flex: 1 !important;
+    }
+
+    /* Header Right Section */
+    header.app-header#appHeader .header-right {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    /* Sidebar Toggle Button */
+    header.app-header#appHeader .sidebar-toggle-btn {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: var(--radius-sm) !important;
+        border: 1px solid var(--border-light) !important;
+        background: transparent !important;
+        color: var(--text-light) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: var(--transition) !important;
+        font-size: 1.25rem !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .sidebar-toggle-btn {
+        border-color: var(--border-dark) !important;
+        color: var(--text-dark) !important;
+    }
+
+    header.app-header#appHeader .sidebar-toggle-btn:hover {
+        background: var(--hover-bg-light) !important;
+        border-color: var(--primary-color) !important;
+        color: var(--primary-color) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .sidebar-toggle-btn:hover {
+        background: var(--hover-bg-dark) !important;
+    }
+
+    /* Search Bar */
+    header.app-header#appHeader .header-search {
+        position: relative !important;
+        flex: 0 1 400px !important;
+    }
+
+    header.app-header#appHeader .search-input {
+        width: 100% !important;
+        height: 40px !important;
+        padding: 0 16px 0 44px !important;
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--border-light) !important;
+        background: var(--hover-bg-light) !important;
+        color: var(--text-active-light) !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        transition: var(--transition) !important;
+        cursor: pointer !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .search-input {
+        background: var(--hover-bg-dark) !important;
+        border-color: var(--border-dark) !important;
+        color: var(--text-active-dark) !important;
+    }
+
+    header.app-header#appHeader .search-input:hover {
+        border-color: var(--primary-color) !important;
+        background: var(--bg-light) !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .search-input:hover {
+        background: var(--bg-dark) !important;
+    }
+
+    header.app-header#appHeader .search-icon {
+        position: absolute !important;
+        left: 16px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        color: var(--text-light) !important;
+        font-size: 1.1rem !important;
+        pointer-events: none !important;
+    }
+
+    /* Search Shortcut Badge */
+    header.app-header#appHeader .search-shortcut {
+        position: absolute !important;
+        right: 12px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        background: var(--primary-color) !important;
+        color: white !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        padding: 2px 8px !important;
+        border-radius: 6px !important;
+        border: 2px solid var(--bg-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .search-shortcut {
+        border-color: var(--bg-dark) !important;
+    }
+
+    /* Header Actions */
+    header.app-header#appHeader .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+
+    /* Action Buttons */
+    header.app-header#appHeader .action-btn {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: var(--radius-sm) !important;
+        border: 1px solid var(--border-light) !important;
+        background: transparent !important;
+        color: var(--text-light) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: var(--transition) !important;
+        position: relative !important;
+        font-size: 1.25rem !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .action-btn {
+        border-color: var(--border-dark) !important;
+        color: var(--text-dark) !important;
+    }
+
+    header.app-header#appHeader .action-btn:hover {
+        background: var(--hover-bg-light) !important;
+        border-color: var(--primary-color) !important;
+        color: var(--primary-color) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .action-btn:hover {
+        background: var(--hover-bg-dark) !important;
+    }
+
+    /* Notification Badge */
+    header.app-header#appHeader .notification-badge {
+        position: absolute !important;
+        top: -4px !important;
+        right: -4px !important;
+        width: 18px !important;
+        height: 18px !important;
+        background: linear-gradient(135deg, var(--danger-color), #dc2626) !important;
+        color: white !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 2px solid var(--bg-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .notification-badge {
+        border-color: var(--bg-dark) !important;
+        background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    }
+
+    /* Cart Badge */
+    header.app-header#appHeader .cart-badge {
+        position: absolute !important;
+        top: -4px !important;
+        right: -4px !important;
+        width: 18px !important;
+        height: 18px !important;
+        background: linear-gradient(135deg, var(--warning-color), #d97706) !important;
+        color: white !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 2px solid var(--bg-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-badge {
+        border-color: var(--bg-dark) !important;
+        background: linear-gradient(135deg, #d97706, #b45309) !important;
+    }
+
+    /* Theme Toggle */
+    header.app-header#appHeader .theme-toggle {
+        display: flex !important;
+        background: var(--hover-bg-light) !important;
+        border-radius: var(--radius-md) !important;
+        padding: 4px !important;
+        border: 1px solid var(--border-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .theme-toggle {
+        background: var(--hover-bg-dark) !important;
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .theme-btn {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: var(--radius-sm) !important;
+        border: none !important;
+        background: transparent !important;
+        color: var(--text-light) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        transition: var(--transition) !important;
+        font-size: 1.1rem !important;
+    }
+
+    header.app-header#appHeader .theme-btn.active {
+        background: var(--primary-color) !important;
+        color: white !important;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
+    }
+
+    /* Profile Dropdown */
+    header.app-header#appHeader .profile-dropdown {
+        margin-left: 8px !important;
+    }
+
+    header.app-header#appHeader .profile-btn {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 8px 12px !important;
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--border-light) !important;
+        background: transparent !important;
+        cursor: pointer !important;
+        transition: var(--transition) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .profile-btn {
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .profile-btn:hover {
+        background: var(--hover-bg-light) !important;
+        border-color: var(--primary-color) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .profile-btn:hover {
+        background: var(--hover-bg-dark) !important;
+    }
+
+    header.app-header#appHeader .profile-avatar {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: white !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        border: 2px solid var(--bg-light) !important;
+        transition: var(--transition) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .profile-avatar {
+        border-color: var(--bg-dark) !important;
+    }
+
+    header.app-header#appHeader .profile-btn:hover .profile-avatar {
+        transform: scale(1.05) !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+    }
+
+    header.app-header#appHeader .profile-info {
+        text-align: left !important;
+    }
+
+    header.app-header#appHeader .profile-name {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: var(--text-active-light) !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .profile-name {
+        color: var(--text-active-dark) !important;
+    }
+
+    header.app-header#appHeader .profile-email {
+        font-size: 12px !important;
+        color: var(--text-light) !important;
+        margin: 2px 0 0 0 !important;
+        white-space: nowrap !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .profile-email {
+        color: var(--text-dark) !important;
+    }
+
+    header.app-header#appHeader .profile-arrow {
+        color: var(--text-light) !important;
+        font-size: 1.2rem !important;
+        transition: transform 0.3s !important;
+    }
+
+    header.app-header#appHeader .profile-btn[aria-expanded="true"] .profile-arrow {
+        transform: rotate(180deg) !important;
+    }
+
+    /* Dropdown Menu */
+    header.app-header#appHeader .dropdown-menu {
+        background: var(--bg-light) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: var(--radius-md) !important;
+        box-shadow: var(--shadow-lg) !important;
+        padding: 0 !important;
+        min-width: 280px !important;
+        overflow: hidden !important;
+        margin-top: 8px !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .dropdown-menu {
+        background: var(--bg-dark) !important;
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .dropdown-header {
+        padding: 16px !important;
+        border-bottom: 1px solid var(--border-light) !important;
+        background: var(--hover-bg-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .dropdown-header {
+        border-color: var(--border-dark) !important;
+        background: var(--hover-bg-dark) !important;
+    }
+
+    header.app-header#appHeader .dropdown-body {
+        padding: 8px 0 !important;
+    }
+
+    header.app-header#appHeader .dropdown-item {
+        padding: 12px 16px !important;
+        color: var(--text-light) !important;
+        text-decoration: none !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        transition: var(--transition) !important;
+        border: none !important;
+        background: transparent !important;
+        width: 100% !important;
+        text-align: left !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .dropdown-item {
+        color: var(--text-dark) !important;
+    }
+
+    header.app-header#appHeader .dropdown-item:hover {
+        background: var(--hover-bg-light) !important;
+        color: var(--text-active-light) !important;
+        padding-left: 20px !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .dropdown-item:hover {
+        background: var(--hover-bg-dark) !important;
+        color: var(--text-active-dark) !important;
+    }
+
+    header.app-header#appHeader .dropdown-item i {
+        width: 20px !important;
+        text-align: center !important;
+        font-size: 1.1rem !important;
+    }
+
+    header.app-header#appHeader .dropdown-item.text-danger {
+        color: var(--danger-color) !important;
+    }
+
+    header.app-header#appHeader .dropdown-item.text-danger:hover {
+        background: rgba(239, 68, 68, 0.1) !important;
+    }
+
+    /* Notification Dropdown Specific */
+    header.app-header#appHeader .notification-dropdown {
+        min-width: 360px !important;
+        max-height: 500px !important;
+        overflow-y: auto !important;
+    }
+
+    header.app-header#appHeader .notification-item {
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--border-light) !important;
+        transition: var(--transition) !important;
+        display: flex !important;
+        gap: 12px !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .notification-item {
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .notification-item:hover {
+        background: var(--hover-bg-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .notification-item:hover {
+        background: var(--hover-bg-dark) !important;
+    }
+
+    header.app-header#appHeader .notification-item:last-child {
+        border-bottom: none !important;
+    }
+
+    header.app-header#appHeader .notification-icon {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.2rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    header.app-header#appHeader .notification-content {
+        flex: 1 !important;
+    }
+
+    header.app-header#appHeader .notification-title {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: var(--text-active-light) !important;
+        margin: 0 0 4px 0 !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .notification-title {
+        color: var(--text-active-dark) !important;
+    }
+
+    header.app-header#appHeader .notification-time {
+        font-size: 12px !important;
+        color: var(--text-light) !important;
+        margin: 0 !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .notification-time {
+        color: var(--text-dark) !important;
+    }
+
+    /* Cart Dropdown Specific */
+    header.app-header#appHeader .cart-dropdown {
+        min-width: 320px !important;
+    }
+
+    header.app-header#appHeader .cart-item {
+        padding: 12px 16px !important;
+        border-bottom: 1px solid var(--border-light) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-item {
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .cart-item-image {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 8px !important;
+        object-fit: cover !important;
+        border: 1px solid var(--border-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-item-image {
+        border-color: var(--border-dark) !important;
+    }
+
+    header.app-header#appHeader .cart-item-details {
+        flex: 1 !important;
+    }
+
+    header.app-header#appHeader .cart-item-name {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: var(--text-active-light) !important;
+        margin: 0 0 4px 0 !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-item-name {
+        color: var(--text-active-dark) !important;
+    }
+
+    header.app-header#appHeader .cart-item-quantity {
+        font-size: 12px !important;
+        color: var(--text-light) !important;
+        margin: 0 !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-item-quantity {
+        color: var(--text-dark) !important;
+    }
+
+    header.app-header#appHeader .cart-item-price {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: var(--text-active-light) !important;
+    }
+
+    [data-theme="dark"] header.app-header#appHeader .cart-item-price {
+        color: var(--text-active-dark) !important;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        header.app-header#appHeader {
+            left: 0 !important;
+        }
+
+        body.sidebar-collapsed header.app-header#appHeader {
+            left: 0 !important;
+        }
+
+        header.app-header#appHeader .header-container {
+            padding: 0 16px !important;
+        }
+
+        header.app-header#appHeader .header-search {
+            flex: 0 1 200px !important;
+        }
+
+        header.app-header#appHeader .profile-info {
+            display: none !important;
+        }
+
+        header.app-header#appHeader .profile-btn {
+            padding: 8px !important;
+        }
+
+        header.app-header#appHeader .notification-dropdown,
+        header.app-header#appHeader .cart-dropdown {
+            position: fixed !important;
+            top: var(--header-height) !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 90vw !important;
+            max-width: 400px !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        header.app-header#appHeader .header-search {
+            display: none !important;
+        }
+
+        header.app-header#appHeader .header-actions {
+            gap: 4px !important;
+        }
+
+        header.app-header#appHeader .d-none-mobile {
+            display: none !important;
+        }
+    }
+</style>
+
+<header class="app-header" id="appHeader">
+    <div class="header-container">
+        <div class="header-left">
+            <button class="sidebar-toggle-btn" id="toggleSidebar" aria-label="Toggle Sidebar">
+                <i class="ri-menu-line"></i>
+            </button>
+            
+            <!-- <div class="header-search d-none d-md-block">
+                <input type="text" class="search-input" placeholder="Search for anything..." readonly data-bs-toggle="modal" data-bs-target="#searchModal">
+                <i class="ri-search-line search-icon"></i>
+                <span class="search-shortcut">Ctrl K</span>
+            </div> -->
+        </div>
+
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="action-btn d-md-none" data-bs-toggle="modal" data-bs-target="#searchModal" aria-label="Search">
+                    <i class="ri-search-line"></i>
                 </button>
-                <button type="button" class="horizontal-toggle btn header-btn d-none" id="toggleHorizontal" aria-label="Toggle Menu">
-                    <i class="ri-menu-2-line header-icon"></i>
-                </button>
-                <!-- Search Bar -->
-                <div class="form-icon right d-none d-md-block" data-bs-toggle="modal" data-bs-target="#searchModal">
-                    <input type="text" class="form-control form-control-icon bg-transparent rounded-pill min-w-300px" id="Search" placeholder="Search" required>
-                    <div class="search-btn">
-                        <div><i class="ri-search-line text-muted fs-16"></i></div>
-                        <div><span class="badge bg-light-subtle text-muted">CTRL D</span></div>
+                
+                <div class="dropdown">
+                    <button class="action-btn notification-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+                        <i class="ri-notification-3-line"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end notification-dropdown">
+                        <div class="dropdown-header">
+                            <h6 class="mb-0 d-flex align-items-center">
+                                Notifications
+                                <span class="badge bg-primary-subtle text-primary ms-auto">3 Unread</span>
+                            </h6>
+                        </div>
+                        <div class="dropdown-body">
+                            <div class="notification-item">
+                                <div class="notification-icon bg-primary-subtle text-primary">
+                                    <i class="ri-shopping-cart-line"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-title">New Order Received</p>
+                                    <p class="notification-time">2 minutes ago</p>
+                                </div>
+                            </div>
+                            <div class="notification-item">
+                                <div class="notification-icon bg-success-subtle text-success">
+                                    <i class="ri-user-follow-line"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-title">New User Registered</p>
+                                    <p class="notification-time">1 hour ago</p>
+                                </div>
+                            </div>
+                            <div class="notification-item">
+                                <div class="notification-icon bg-warning-subtle text-warning">
+                                    <i class="ri-alert-line"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <p class="notification-title">Server Maintenance</p>
+                                    <p class="notification-time">Tomorrow, 2:00 AM</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown-header">
+                            <a href="javascript:void(0)" class="text-primary text-decoration-none small">View all notifications</a>
+                        </div>
                     </div>
+                </div>
+                
+                <!-- <div class="dropdown">
+                    <button class="action-btn cart-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Cart">
+                        <i class="ri-shopping-cart-2-line"></i>
+                        <span class="cart-badge">2</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end cart-dropdown">
+                        <div class="dropdown-header">
+                            <h6 class="mb-0">Cart Items</h6>
+                            <span class="badge bg-primary-subtle text-primary">2</span>
+                        </div>
+                        <div class="dropdown-body">
+                            <div class="cart-item">
+                                <img src="${pageContext.request.contextPath}/assets/images/product/img-02.png" alt="Product" class="cart-item-image">
+                                <div class="cart-item-details">
+                                    <p class="cart-item-name">Wireless Headphones</p>
+                                    <p class="cart-item-quantity">2 × $159.99</p>
+                                </div>
+                                <div class="cart-item-price">$319.98</div>
+                            </div>
+                            <div class="cart-item">
+                                <img src="${pageContext.request.contextPath}/assets/images/product/img-03.png" alt="Product" class="cart-item-image">
+                                <div class="cart-item-details">
+                                    <p class="cart-item-name">Smart Watch</p>
+                                    <p class="cart-item-quantity">1 × $299.99</p>
+                                </div>
+                                <div class="cart-item-price">$299.99</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-header">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <span>Total:</span>
+                                <strong>$619.97</strong>
+                            </div>
+                        </div>
+                        <div class="dropdown-header">
+                            <div class="d-grid gap-2">
+                                <a href="apps-ecommerce-cart.html" class="btn btn-outline-primary">View Cart</a>
+                                <a href="apps-ecommerce-checkout.html" class="btn btn-primary">Checkout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div> -->
+                
+                <!-- <button class="action-btn d-none d-md-block" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-label="Settings">
+                    <i class="ri-settings-3-line"></i>
+                </button> -->
+                
+                <div class="theme-toggle" id="toggleMode">
+                    <button class="theme-btn active" id="lightModeBtn" type="button" aria-label="Switch to Light Mode">
+                        <i class="ri-sun-line"></i>
+                    </button>
+                    <button class="theme-btn" id="darkModeBtn" type="button" aria-label="Switch to Dark Mode">
+                        <i class="ri-moon-line"></i>
+                    </button>
                 </div>
             </div>
-            <div class="flex-shrink-0 d-flex align-items-center gap-4">
-                <div class="d-flex gap-2 align-items-center">
-                    <div class="dropdown pe-dropdown-mega d-none d-md-block">
-                        <button class="btn header-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
-                            <i class="bi bi-bell"></i>
-                            <div class="icon-dot"></div>
-                        </button>
-                        <div class="dropdown-menu dropdown-mega-md header-dropdown-menu pe-noti-dropdown-menu p-0">
-                            <div class="p-3 border-bottom">
-                                <h6 class="d-flex align-items-center mb-0">Notification <span class="badge bg-success-subtle text-success ms-auto">4 Unread</span></h6>
+            
+            <div class="dropdown profile-dropdown">
+                <button class="profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="profile-avatar">
+                        <c:choose>
+                            <c:when test="${not empty userInfo.first_name and not empty userInfo.last_name}">
+                                ${fn:substring(userInfo.first_name, 0, 1)}${fn:substring(userInfo.last_name, 0, 1)}
+                            </c:when>
+                            <c:otherwise>
+                                <i class="ri-user-line"></i>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                    <div class="profile-info d-none d-xl-block">
+                        <p class="profile-name">${userInfo.first_name} ${userInfo.last_name}</p>
+                        <p class="profile-email">${userInfo.email}</p>
+                    </div>
+                    <i class="ri-arrow-down-s-line profile-arrow"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <div class="dropdown-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="profile-avatar">
+                                <c:choose>
+                                    <c:when test="${not empty userInfo.first_name and not empty userInfo.last_name}">
+                                        ${fn:substring(userInfo.first_name, 0, 1)}${fn:substring(userInfo.last_name, 0, 1)}
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="ri-user-line"></i>
+                                    </c:otherwise>
+                                </c:choose>
                             </div>
                             <div>
-                                <div class="noti-item">
-                                    <div class="avatar-md d-flex align-items-center justify-content-center bg-success-subtle text-success fs-16">
-                                        <i class="bi bi-bag-check-fill"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <a href="#!" class="text-decoration-none stretched-link">
-                                            <h6 class="mb-1 fw-semibold">Item Back in Stock</h6>
-                                        </a>
-                                        <p class="text-muted mb-2 fs-12 mb-2">Today, 02:45 PM</p>
-                                        <div class="p-2 bg-body-tertiary bg-opacity-50 rounded">
-                                            <p class="mb-0 lh-base fs-13">Good news! The item you wanted is back in stock. Grab it before it’s gone again!</p>
-                                        </div>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-0 end-0 mt-2 me-3 fs-18 link link-danger z-1">
-                                        <i class="bi bi-x"></i>
-                                    </a>
-                                </div>
-                                <div class="noti-item">
-                                    <img src="assets/images/avatar/avatar-8.jpg" alt="Avatar Iamge" class="avatar-md">
-                                    <div>
-                                        <a href="#!" class="stretched-link">
-                                            <h6 class="mb-1 text-muted"><strong class="fw-semibold text-body">Donald</strong><i class="ri-heart-3-fill text-danger ms-1"></i></h6>
-                                        </a>
-                                        <p class="text-muted mb-0 fs-12 mb-2">Friday, 11:29 PM</p>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-10 end-0 fs-18 z-1 link link-danger me-3"><i class="bi bi-x"></i></a>
-                                </div>
-                                <div class="noti-item">
-                                    <div class="avatar-md d-flex align-items-center justify-content-center bg-danger-subtle text-danger fs-16">
-                                        <i class="bi bi-fire"></i>
-                                    </div>
-                                    <div>
-                                        <a href="#!" class="stretched-link">
-                                            <h6 class="mb-2">Birthday Reminder</h6>
-                                        </a>
-                                        <p class="text-muted mb-2 fs-12 mb-2">Tuesday, 02:45 PM</p>
-                                        <div class="p-2 bg-body-tertiary bg-opacity-50 rounded">
-                                            <p class="mb-0 lh-base fs-13">Don’t forget! It’s Emily birthday tomorrow. Send them a message!</p>
-                                        </div>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-10 end-0 fs-18 z-1 link link-danger me-3"><i class="bi bi-x"></i></a>
-                                </div>
-                                <div class="noti-item">
-                                    <img src="assets/images/avatar/avatar-5.jpg" alt="Avatar Image" class="avatar-md">
-                                    <div>
-                                        <a href="#!" class="stretched-link">
-                                            <h6 class="mb-1 text-muted"><strong class="fw-semibold text-body">Richard</strong><i class="bi bi-person-plus-fill text-primary fs-16 ms-1"></i></h6>
-                                        </a>
-                                        <p class="text-muted mb-0 fs-12">Monday, 07:14 AM</p>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-10 end-0 fs-18 z-1 link link-danger me-3"><i class="bi bi-x"></i></a>
-                                </div>
-                                <div class="noti-item">
-                                    <img src="assets/images/avatar/avatar-4.jpg" alt="Avatar Image" class="avatar-md">
-                                    <div>
-                                        <a href="#!" class="stretched-link">
-                                            <h6 class="mb-2">Olivia <strong class="fw-normal text-muted fs-13">liked your recent post</strong></h6>
-                                        </a>
-                                        <p class="text-muted mb-0 fs-12">Thursday 3:20 PM</p>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-10 end-0 fs-18 z-1 link link-danger me-3"><i class="bi bi-x"></i></a>
-                                </div>
-                                <div class="noti-item">
-                                    <img src="assets/images/avatar/avatar-1.jpg" alt="Avatar Image" class="avatar-md">
-                                    <div>
-                                        <a href="#!" class="stretched-link">
-                                            <h6 class="mb-2 text-body">Mia <strong class="fw-normal text-muted fs-13">shared a file in Marketing Campaign</strong></h6>
-                                        </a>
-                                        <p class="text-muted mb-3 fs-12">Thursday 3:20 PM</p>
-                                        <div class="d-flex align-items-center gap-2 p-2 position-relative z-1 border rounded">
-                                            <div class="avatar-md d-flex align-items-center rounded justify-content-center flex-shrink-0 bg-danger-subtle text-danger">
-                                                <i class="bi bi-file-pdf"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <a href="#!">
-                                                    <h6 class="mb-2">Campaign_Strategy.mp4</h6>
-                                                </a>
-                                                <p class="mb-0 text-muted fs-12">MP4 | 14 MB</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <a href="#!" class="position-absolute top-10 end-0 fs-18 z-1 link link-danger me-3"><i class="bi bi-x"></i></a>
-                                </div>
+                                <p class="profile-name mb-1">${userInfo.first_name} ${userInfo.last_name}</p>
+                                <p class="profile-email mb-0">${userInfo.email}</p>
                             </div>
                         </div>
                     </div>
-                    <div class="dropdown pe-dropdown-mega d-none d-md-block">
-                        <button class="btn btn-icon header-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Messages">
-                            <i class="bi bi-cart position-relative"></i>
-                            <div class="icon-dot"></div>
-                        </button>
-                        <ul class="dropdown-menu dropdown-mega-md header-dropdown-menu p-0">
-                            <div class="card mb-0">
-                                <div class="p-5 border-bottom d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title">Cart Items</h5>
-                                    <span class="badge text-primary bg-primary-subtle">3</span>
-                                </div>
-                                <ul class="list-unstyled list-none mb-0 p-4" id="header-cart-items-scroll">
-                                    <li class="cart-item">
-                                        <div class="d-flex items-start cart-dropdown-item">
-                                            <img src="assets/images/product/img-02.png" class="avatar-lg me-4 p-1 rounded border" alt="img">
-                                            <div class="flex-grow-1">
-                                                <div>
-                                                    <h6><a href="apps-ecommerce-products-details.html" class="text-reset">Stop Watch</a></h6>
-                                                    <p class="mb-0 fs-12 text-muted">Quantity: <span>2 x $159</span></p>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center px-2">
-                                                <h6 class="m-0 fw-normal">$<span class="cart-item-price">318</span></h6>
-                                            </div>
-                                            <div class="ps-2 d-flex">
-                                                <button type="button" class="btn btn-sm"><i class="ri-close-fill fs-16"></i></button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="cart-item">
-                                        <div class="d-flex items-start cart-dropdown-item">
-                                            <img src="assets/images/product/img-03.png" class="avatar-lg me-4 p-1 rounded border" alt="img">
-                                            <div class="flex-grow-1">
-                                                <div>
-                                                    <h6><a href="apps-ecommerce-products-details.html" class="text-reset">Jeens Shoes</a></h6>
-                                                    <p class="mb-0 fs-12 text-muted">Quantity: <span>1 x $399</span></p>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center px-2">
-                                                <h6 class="m-0 fw-normal">$<span class="cart-item-price">399</span></h6>
-                                            </div>
-                                            <div class="ps-2 d-flex">
-                                                <button type="button" class="btn btn-sm"><i class="ri-close-fill fs-16"></i></button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li class="cart-item">
-                                        <div class="d-flex items-start cart-dropdown-item">
-                                            <img src="assets/images/product/img-04.png" class="avatar-lg me-4 p-1 rounded border" alt="img">
-                                            <div class="flex-grow-1">
-                                                <div>
-                                                    <h6><a href="apps-ecommerce-products-details.html" class="text-reset">Solder Less T-shirt</a></h6>
-                                                    <p class="mb-0 fs-12 text-muted">Quantity: <span>3 x $259</span></p>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center px-2">
-                                                <h6 class="m-0 fw-normal">$<span class="cart-item-price">777</span></h6>
-                                            </div>
-                                            <div class="ps-2 d-flex">
-                                                <button type="button" class="btn btn-sm"><i class="ri-close-fill fs-16"></i></button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <div class="px-5 py-4 bg-light-subtle d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">Order Total:</h6>
-                                    <span class="fw-semibold">$1494.00</span>
-                                </div>
-                                <div class="p-5 d-flex justify-content-end gap-3">
-                                    <a href="apps-ecommerce-cart.html"><button class="btn btn-light" type="button">View Cart</button></a>
-                                    <a class="btn btn-primary view-checkout" href="apps-ecommerce-checkout.html">Checkout </a>
-                                </div>
-                            </div>
-                        </ul>
-                    </div>
-                    <button class="btn header-btn d-block d-md-none" type="button" data-bs-toggle="modal" data-bs-target="#searchModal">
-                        <i class="ri-search-line"></i>
-                    </button>
-                    <button class="btn header-btn d-none d-md-block" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight" aria-label="Settings">
-                        <i class="bi bi-gear"></i>
-                    </button>
-                </div>
-                <div class="dark-mode-btn" id="toggleMode">
-                    <button class="btn header-btn active" id="lightModeBtn" type="button" aria-label="Switch to light mode">
-                        <i class="bi bi-brightness-high"></i>
-                    </button>
-                    <button class="btn header-btn" id="darkModeBtn" type="button" aria-label="Switch to Dark mode">
-                        <i class="bi bi-moon-stars"></i>
-                    </button>
-                </div>
-                <div class="dropdown pe-dropdown-mega d-none d-md-block">
-                    <button class="header-profile-btn btn gap-1 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="d-none d-xl-block pe-2">
-                            <span class="d-block mb-0 fs-12 fw-semibold">${userInfo.first_name} ${userInfo.last_name}</span>
-                            <span class="d-block mb-0 fs-10 text-muted"> ${userInfo.email}</span>
-                        </div>
-                        <span class="header-btn btn position-relative">
-                            <img src="assets/images/users/user-1.png" alt="Avatar Image" class="img-fluid rounded-circle">
-                        </span>
-                    </button>
-                    <div class="dropdown-menu dropdown-mega-sm header-dropdown-menu p-3">
-                        <div class="border-bottom pb-2 mb-2 d-flex align-items-center gap-2">
-                            <img src="assets/images/users/user-1.png" alt="Avatar Image" class="avatar-md">
-                            <div>
-                                <a href="javascript:void(0)">
-                                    <h6 class="mb-0 lh-base">${userInfo.first_name} ${userInfo.last_name}</h6>
-                                </a>
-                                <p class="mb-0 fs-10 text-muted">${userInfo.unique_id}</p>
-                            </div>
-                        </div>
-                        <ul class="list-unstyled mb-1 border-bottom pb-1">
-                            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-person me-2"></i> View Profile</a></li>
-                            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/profile"><i class="bi bi-gear me-2"></i> Settings</a></li>
-                            <li><a class="dropdown-item" href="javascript:void(0)"><i class="bi bi-headset me-2"></i> Support</a></li>
-                        </ul>
-                        <ul class="list-unstyled mb-0">
-                            <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout" onclick="logoutLink(event, this)"><i class="bi bi-box-arrow-right me-2"></i> Sign Out</a></li>
-                        </ul>
+                    <div class="dropdown-body">
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/profile">
+                            <i class="ri-user-line"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/profile/settings">
+                            <i class="ri-settings-3-line"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a class="dropdown-item" href="javascript:void(0)">
+                            <i class="ri-customer-service-2-line"></i>
+                            <span>Support Center</span>
+                        </a>
+                        <a class="dropdown-item" href="javascript:void(0)">
+                            <i class="ri-file-text-line"></i>
+                            <span>Documentation</span>
+                        </a>
+                        <div class="dropdown-divider my-2"></div>
+                        <a class="dropdown-item text-danger" href="${pageContext.request.contextPath}/logout" onclick="logoutLink(event, this)">
+                            <i class="ri-logout-box-r-line"></i>
+                            <span>Sign Out</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -246,27 +865,183 @@
     </div>
 </header>
 
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <div class="input-group input-group-lg">
+                    <input type="text" class="form-control border-0 py-3 px-4" placeholder="Search for anything..." autofocus>
+                    <button class="btn btn-primary px-4" type="button">
+                        <i class="ri-search-line"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-window.logoutLink = function(event, el) {
-    event.preventDefault(); // stop the default navigation
+    // Global User Context
+    window.userInfo = {
+        unique_id: "${userInfo.unique_id}",
+        user_uuid: "${userInfo.user_uuid != null ? userInfo.user_uuid : userInfo.unique_id}",
+        organization_uuid: "${userInfo.organization_uuid}",
+        org_id: "${userInfo.org_id}",
+        email: "${userInfo.email}",
+        first_name: "${userInfo.first_name}",
+        last_name: "${userInfo.last_name}",
+        role: "${userInfo.role}"
+    };
+
+    window.ORG_CONTEXT = {
+        organization_uuid: "${userInfo.organization_uuid}",
+        organization_id: "${userInfo.org_id}"
+    };
+    
+    // Log context for debugging
+    console.log('[App] Context loaded', { user: window.userInfo.unique_id, org: window.ORG_CONTEXT.organization_uuid, org_id: window.ORG_CONTEXT.organization_id });
+</script>
+
+<script>
+// Header JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle Sidebar
+    const toggleSidebarBtn = document.getElementById('toggleSidebar');
+    if (toggleSidebarBtn) {
+        toggleSidebarBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Initialize Dark Mode
+    initDarkMode();
+
+    // Initialize dropdown tooltips
+    initDropdownTooltips();
+});
+
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        sidebar.classList.toggle('show');
+        document.body.classList.toggle('sidebar-open');
+        document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : '';
+    } else {
+        sidebar.classList.toggle('collapsed');
+        document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    }
+    
+    updateToggleIcon();
+}
+
+function updateToggleIcon() {
+    const sidebar = document.getElementById('sidebar');
+    const headerIcon = document.querySelector('.sidebar-toggle-btn i');
+    
+    if (sidebar.classList.contains('collapsed')) {
+        headerIcon.className = 'ri-menu-line';
+    } else {
+        headerIcon.className = 'ri-menu-line';
+    }
+}
+
+function initDarkMode() {
+    const lightModeBtn = document.getElementById('lightModeBtn');
+    const darkModeBtn = document.getElementById('darkModeBtn');
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    
+    if (isDarkMode) {
+        document.body.setAttribute('data-theme', 'dark');
+        lightModeBtn.classList.remove('active');
+        darkModeBtn.classList.add('active');
+    } else {
+        document.body.removeAttribute('data-theme');
+        lightModeBtn.classList.add('active');
+        darkModeBtn.classList.remove('active');
+    }
+    
+    lightModeBtn.addEventListener('click', function() {
+        document.body.removeAttribute('data-theme');
+        lightModeBtn.classList.add('active');
+        darkModeBtn.classList.remove('active');
+        localStorage.setItem('darkMode', 'false');
+    });
+    
+    darkModeBtn.addEventListener('click', function() {
+        document.body.setAttribute('data-theme', 'dark');
+        lightModeBtn.classList.remove('active');
+        darkModeBtn.classList.add('active');
+        localStorage.setItem('darkMode', 'true');
+    });
+}
+
+function initDropdownTooltips() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+}
+
+function logoutLink(event, element) {
+    event.preventDefault();
 
     Swal.fire({
-        title: "Are you sure?",
-        text: "You will be logged out of the system.",
-        icon: "warning",
+        title: "Ready to leave?",
+        text: "Are you sure you want to sign out?",
+        icon: "question",
         showCancelButton: true,
-        confirmButtonColor: "#d33",
-        confirmButtonText: "Yes, log me out",
+        confirmButtonColor: "#6366f1",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: "Yes, sign out",
         cancelButtonText: "Cancel",
+        background: getComputedStyle(document.documentElement).getPropertyValue('--bg-light').trim(),
+        color: getComputedStyle(document.documentElement).getPropertyValue('--text-active-light').trim(),
         customClass: {
-            cancelButton: "btn btn-light text-dark", // Bootstrap light button with dark text
-            confirmButton: "btn btn-danger text-white"
+            popup: 'border-radius-md shadow-lg',
+            confirmButton: 'btn btn-primary px-4',
+            cancelButton: 'btn btn-secondary px-4'
         },
-        buttonsStyling: false // disable default SweetAlert2 styling
+        buttonsStyling: false
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = el.href; // redirect if confirmed
+            // Add loading state
+            const originalHtml = element.innerHTML;
+            element.innerHTML = '<i class="ri-loader-4-line spin me-2"></i> Signing out...';
+            element.disabled = true;
+            
+            // Perform logout
+            setTimeout(() => {
+                window.location.href = element.getAttribute('href');
+            }, 800);
         }
     });
 }
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    const sidebar = document.getElementById('sidebar');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        sidebar.classList.remove('collapsed');
+        document.body.classList.remove('sidebar-collapsed');
+        sidebar.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+        document.body.style.overflow = '';
+    } else {
+        sidebar.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+        document.body.style.overflow = '';
+        
+        // Restore collapsed state
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            document.body.classList.add('sidebar-collapsed');
+        }
+    }
+    updateToggleIcon();
+});
 </script>

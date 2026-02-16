@@ -1,605 +1,468 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/dashboard.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/report_modal.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- PDF Generation Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
 <main class="app-wrapper">
     <div class="container-fluid">
-
-        <div class="main-breadcrumb d-flex align-items-center my-3 position-relative">
-            <h2 class="breadcrumb-title mb-0 flex-grow-1 fs-14">System Owner Dashboard</h2>
-            <div class="flex-shrink-0">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb justify-content-end mb-0">
-                        <li class="breadcrumb-item"><a href="javascript:void(0)">Dashboard</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Overview</li>
-            </ol>
-            </nav>
+        <!-- Modern Header with Gradient -->
+        <div class="dashboard-header mb-4 p-5 rounded-4 position-relative overflow-hidden border-0" 
+             style="background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%);">
+            <div class="header-background-pattern"></div>
+            <div class="row align-items-center position-relative z-2">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="header-icon rounded-3 p-3 bg-white bg-opacity-20">
+                            <i class="bi bi-speedometer2 text-white fs-2"></i>
+                        </div>
+                        <div>
+                            <h1 class="display-6 fw-bold mb-1 text-white">SpatialEdge Analytics</h1>
+                            <p class="text-white text-opacity-85 mb-0 fs-5">Welcome back to your System Owner Dashboard</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mt-3">
+                        <div class="badge bg-white bg-opacity-20 text-white px-3 py-2 rounded-pill">
+                            <i class="bi bi-people-fill me-2"></i>
+                            <span id="org_count">0</span> Organizations Active
+                        </div>
+                        <div class="badge bg-white bg-opacity-20 text-white px-3 py-2 rounded-pill">
+                            <i class="bi bi-ticket-perforated me-2"></i>
+                            <span id="ticket_total_count">0</span> Total Tickets
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="content-card p-3 mb-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="bi bi-calendar3 text-primary fs-4"></i>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small">Today is</div>
+                                <div id="currentDate" class="fw-bold text-dark"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-top border-opacity-10">
+                            <small class="text-muted">Last updated: <span id="lastUpdatedTime">Just now</span></small>
+                        </div>
+                        <div class="mt-3">
+                            <button id="openReportModal" class="btn btn-primary w-100 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#reportModal">
+                                <i class="bi bi-file-earmark-bar-graph me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="row g-3 mb-3">
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-primary fs-4 rounded-3 shadow-lg border">
-                            <i class="bi bi-buildings"></i>
-                        </div>
-                        <div class="text-end">
-                            <h3 id="org_count">0</h3>
-                            <span class="fs-5">Organizations</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-primary fs-4 rounded-3 shadow-lg border">
-                            <i class="bi bi-ticket-perforated"></i>
-                        </div>
-                        <div class="text-end">
-                            <h3 id="ticket_total_count">0</h3>
-                            <span class="fs-5">Total Tasks</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-success fs-4 rounded-3 shadow-lg border">
+
+        <!-- Quick Stats Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--primary-color);">
                             <i class="bi bi-play-circle"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="status_open_count">0</h3>
-                            <span class="fs-5">Open</span>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 12%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_open_count">0</div>
+                        <div class="stat-label">Open Tasks</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-primary" style="width: 65%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-warning fs-4 rounded-3 shadow-lg border">
+            
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--warning-color);">
                             <i class="bi bi-lightning-charge"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="status_in_progress_count">0</h3>
-                            <span class="fs-5">In Progress</span>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 15%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_in_progress_count">0</div>
+                        <div class="stat-label">In Progress</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-warning" style="width: 45%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row g-3 mb-3">
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-info fs-4 rounded-3 shadow-lg border">
+            
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--info-color);">
                             <i class="bi bi-check2-circle"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="status_resolved_count">0</h3>
-                            <span class="fs-5">Resolved</span>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 20%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_resolved_count">0</div>
+                        <div class="stat-label">Resolved</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-info" style="width: 85%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-danger fs-4 rounded-3 shadow-lg border">
+            
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--danger-color);">
                             <i class="bi bi-x-circle"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="status_closed_count">0</h3>
-                            <span class="fs-5">Closed</span>
+                        <div class="stat-trend-badge down">
+                            <i class="bi bi-arrow-down"></i> 3%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_closed_count">0</div>
+                        <div class="stat-label">Closed</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-danger" style="width: 30%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-danger fs-4 rounded-3 shadow-lg border">
+            
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--danger-color);">
                             <i class="bi bi-exclamation-triangle"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="priority_critical_count">0</h3>
-                            <span class="fs-5">Critical</span>
+                        <div class="stat-trend-badge down">
+                            <i class="bi bi-arrow-down"></i> 10%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="overdue_tickets_count">0</div>
+                        <div class="stat-label">Overdue</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-danger" style="width: 25%"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="card card-h-100">
-                    <div class="card-body d-flex align-items-center justify-content-between">
-                        <div class="h-48px w-48px d-flex justify-content-center align-items-center text-danger fs-4 rounded-3 shadow-lg border">
-                            <i class="bi bi-arrow-up"></i>
+            
+            <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--primary-color);">
+                            <i class="bi bi-person-check"></i>
                         </div>
-                        <div class="text-end">
-                            <h3 id="priority_high_count">0</h3>
-                            <span class="fs-5">High</span>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 2%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="my_assigned_total">0</div>
+                        <div class="stat-label">My Tasks</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-primary" style="width: 60%"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <div class="card card-h-100">
-                    <div class="card-header">
-                        <h4>Status Distribution</h4>
-                    </div>
-                    <div class="card-body">
-                        <div id="status_pie_chart" style="height:320px"></div>
-                    </div>
+
+        <!-- Date Range Filter -->
+        <div class="content-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <div class="h6 mb-0">
+                    <i class="bi bi-calendar-range text-primary me-2"></i>
+                    Data Date Range
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card card-h-100">
-                    <div class="card-header">
-                        <h4>Priority Breakdown</h4>
+                <div class="d-flex gap-2">
+                    <div>
+                        <label for="dateRangeStart" class="form-label small text-muted mb-1">Start Date</label>
+                        <input type="date" id="dateRangeStart" class="form-control form-control-sm">
                     </div>
-                    <div class="card-body">
-                        <div id="priority_bar_chart" style="height:320px"></div>
+                    <div>
+                        <label for="dateRangeEnd" class="form-label small text-muted mb-1">End Date</label>
+                        <input type="date" id="dateRangeEnd" class="form-control form-control-sm">
                     </div>
-                </div>
-            </div>
-      div>
-        <!-- <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Latest Order</h4>
-                        <div class="d-flex gap-3 align-items-center">
-                            <div class="form-icon">
-                                <input type="text" class="form-control form-control-icon" id="firstNameLayout4" placeholder="Search Here ..." required>
-                                <i class="ri-search-2-line text-muted"></i>
-                            </div>
-                            <div class="btn-group">
-                                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    Weekly
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-start">
-                                    <a class="dropdown-item" href="javascript:void(0)">Weekly</a>
-                                    <a class="dropdown-item" href="javascript:void(0)">In Transit</a>
-                                    <a class="dropdown-item" href="javascript:void(0)">Delivered</a>
-                                    <a class="dropdown-item" href="javascript:void(0)">Pending</a>
-                                    <a class="dropdown-item" href="javascript:void(0)">Delayed</a>
-                                    <a class="dropdown-item" href="javascript:void(0)">Canceled</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-box table-responsive">
-                            <table class="table table-hover text-nowrap">
-                                <thead class="table-light border-0">
-                                    <tr>
-                                        <th>Customer ID</th>
-                                        <th>Email</th>
-                                        <th>Product</th>
-                                        <th>Status</th>
-                                        <th>Tracking</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="flexCheckDefault" id="flexCheckDefault">
-                                                <img src="assets/images/avatar/avatar-1.jpg" class="avatar-sm rounded-2 mx-2" alt="Avatar Image">
-                                                #0051134
-                                            </div>
-                                        </td>
-                                        <td>ela@septi.gmail.com</td>
-                                        <td>MacBook Air</td>
-                                        <td><span class="badge bg-warning-subtle text-warning py-1 rounded-3 border border-warning">On Way</span></td>
-                                        <td>PQ1132G</td>
-                                        <td>
-                                            <div class="dropdown dropdown-menu-end">
-                                                <button class="btn p-0" type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Edit</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">View</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Track</a></li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="flexCheckDefault1" id="flexCheckDefault1" checked>
-                                                <img src="assets/images/avatar/avatar-2.jpg" class="avatar-sm rounded-2 mx-2" alt="Avatar Image">
-                                                #0021598
-                                            </div>
-                                        </td>
-                                        <td>te@shroff.gmail.com</td>
-                                        <td>Magical Pen</td>
-                                        <td><span class="badge bg-primary-subtle text-primary py-1 rounded-3 border border-primary">Waiting</span></td>
-                                        <td>CF0568B</td>
-                                        <td>
-                                            <div class="dropdown dropdown-menu-end">
-                                                <button class="btn p-0" type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Edit</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">View</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Track</a></li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="flexCheckDefault2" id="flexCheckDefault2">
-                                                <img src="assets/images/avatar/avatar-3.jpg" class="avatar-sm rounded-2 mx-2" alt="Avatar Image">
-                                                #0045976
-                                            </div>
-                                        </td>
-                                        <td>te@shroff.gmail.com</td>
-                                        <td>Secret Diary</td>
-                                        <td><span class="badge bg-danger-subtle text-danger py-1 rounded-3 border border-danger">Pending</span></td>
-                                        <td>RY4578K</td>
-                                        <td>
-                                            <div class="dropdown dropdown-menu-end">
-                                                <button class="btn p-0" type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Edit</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">View</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Track</a></li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="flexCheckDefault3" id="flexCheckDefault3">
-                                                <img src="assets/images/avatar/avatar-4.jpg" class="avatar-sm rounded-2 mx-2" alt="Avatar Image">
-                                                #0074564
-                                            </div>
-                                        </td>
-                                        <td>te@shroff.gmail.com</td>
-                                        <td>IdeaPad Azure</td>
-                                        <td><span class="badge bg-success-subtle text-success py-1 rounded-3 border border-success">Delivered</span></td>
-                                        <td>ST9856H</td>
-                                        <td>
-                                            <div class="dropdown dropdown-menu-end">
-                                                <button class="btn p-0" type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Edit</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">View</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Track</a></li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" value="flexCheckDefault4" id="flexCheckDefault4">
-                                                <img src="assets/images/avatar/avatar-5.jpg" class="avatar-sm rounded-2 mx-2" alt="Avatar Image">
-                                                #0098546
-                                            </div>
-                                        </td>
-                                        <td>te@shroff.gmail.com</td>
-                                        <td>Laxmi Electric Stove</td>
-                                        <td><span class="badge bg-success-subtle text-success py-1 rounded-3 border border-success">Delivered</span></td>
-                                        <td>KI1256G</td>
-                                        <td>
-                                            <div class="dropdown dropdown-menu-end">
-                                                <button class="btn p-0" type="button" data-bs-toggle="dropdown">
-                                                    <i class="bi bi-three-dots"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Edit</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">View</a></li>
-                                                    <li><a class="dropdown-item" href="javascript:void(0)">Track</a></li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <div class="align-self-end">
+                        <div class="d-flex gap-1">
+                            <button id="applyDateFilter" class="btn btn-primary btn-sm">
+                                <i class="bi bi-filter me-1"></i> Apply
+                            </button>
+                            <button id="resetDateFilter" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xl-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>Average Order Value</h4>
-                        <div class="d-flex align-items-center">
-                            <ul class="nav nav-pills me-3" id="pills-tab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="average-line-tab" data-bs-toggle="pill" data-bs-target="#average-line" type="button" role="tab" aria-controls="average-line" aria-selected="true">Line</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="average-bar-tab" data-bs-toggle="pill" data-bs-target="#average-bar" type="button" role="tab" aria-controls="average-bar" aria-selected="false">Bar</button>
-                                </li>
-                            </ul>
-                            <div class="dropdown">
-                                <a href="javascript:void(0)" data-bs-toggle="dropdown" class="text-muted">
-                                    <i class="bi bi-three-dots-vertical"></i>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-start">
-                                    <li><a class="dropdown-item" href="javascript:void(0)">This Week</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)">This Month</a></li>
-                                    <li><a class="dropdown-item" href="javascript:void(0)">This Year</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="tab-content" id="pills-tabContent">
-                            <div class="tab-pane fade show active" role="tabpanel" aria-labelledby="pills-home-tab" tabindex="0" id="average-line" class="apexcharts-container"></div>
-                            <div class="tab-pane fade" id="average-bar" role="tabpanel" aria-labelledby="average-bar-tab" tabindex="0"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="card card-h-100">
-                    <div class="card-header">
-                        <h4>Recent Sales</h4>
-                        <a href="javascript:void(0)" class="link">View All</a>
-                    </div>
-                    <div class="card-body">
-                        <div id="gridjs_sort-table"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xxl-4">
-                <div class="card">
-                    <div class="card-header">
+        </div>
+
+        <!-- Priority Distribution Cards -->
+        <!-- <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="priority-card priority-high">
+                    <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <h4>Product Statistics</h4>
-                            <p class="mb-0 text-muted">Track your product sales</p>
+                            <div class="priority-label">High Priority</div>
+                            <div class="priority-number" id="priority_high_count">0</div>
+                            <div class="priority-trend up">
+                                <i class="bi bi-arrow-up"></i> 7% increase
+                            </div>
                         </div>
-                        <a href="javascript:void(0)" class="link">View All</a>
+                        <div class="priority-icon">
+                            <i class="bi bi-arrow-up"></i>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="position-relative">
-                            <div id="product-statistics"></div>
-                            <div class="product-chart text-center">
-                                <h3>9,829</h3>
-                                <p class="mb-0">Product Sales</p>
-                                <span class="badge bg-success py-1 rounded-pill">+5.34%</span>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="priority-card priority-medium">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="priority-label">Medium Priority</div>
+                            <div class="priority-number" id="priority_medium_count">0</div>
+                            <div class="priority-trend up">
+                                <i class="bi bi-arrow-up"></i> 4% increase
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <div>
-                                <i class="ri-ram-line fs-5 me-3"></i>
-                                Electronic
-                            </div>
-                            <div>
-                                <span class="text-muted me-3">2,482</span>
-                                <span class="badge bg-primary-subtle text-primary px-2 rounded-3">+5.34%</span>
+                        <div class="priority-icon">
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="priority-card priority-low">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="priority-label">Low Priority</div>
+                            <div class="priority-number" id="priority_low_count">0</div>
+                            <div class="priority-trend down">
+                                <i class="bi bi-arrow-down"></i> 1% decrease
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <div>
-                                <i class="bi bi-controller fs-5 me-3"></i>
-                                Games
-                            </div>
-                            <div>
-                                <span class="text-muted me-3">1,828</span>
-                                <span class="badge bg-warning-subtle text-warning px-2 rounded-3">+5.34%</span>
+                        <div class="priority-icon">
+                            <i class="bi bi-arrow-down"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6">
+                <div class="priority-card priority-critical">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="priority-label">Critical</div>
+                            <div class="priority-number">12</div>
+                            <div class="priority-trend up">
+                                <i class="bi bi-arrow-up"></i> 3% increase
                             </div>
                         </div>
+                        <div class="priority-icon">
+                            <i class="bi bi-exclamation-octagon"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+
+        <!-- Charts Section -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-4 col-lg-6">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-pie-chart me-2"></i>
+                            Status Distribution
+                        </h4>
+                        <div class="time-filter">
+                            <select class="form-select form-select-sm">
+                                <option>This Week</option>
+                                <option selected>This Month</option>
+                                <option>This Quarter</option>
+                                <option>This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="status_pie_chart" style="width: 100%; height: 100%;"></div>
+                    </div>
+                    <div class="chart-card-footer">
                         <div class="d-flex justify-content-between">
-                            <div>
-                                <i class="bi bi-lamp fs-5 me-3"></i>
-                                Furniture
-                            </div>
-                            <div>
-                                <span class="text-muted me-3">1,463</span>
-                                <span class="badge bg-danger-subtle text-danger px-2 rounded-3">+5.34%</span>
-                            </div>
+                            <small class="text-muted">Total: <strong id="totalTickets">0</strong> tickets</small>
+                            <small class="text-muted">Updated: <span id="statusChartUpdate">just now</span></small>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xxl-4 col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <div>
-                            <h4>Customer Growth</h4>
-                            <p class="mb-0 text-muted">Track Customer per location</p>
+            
+            <div class="col-xl-4 col-lg-6">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-bar-chart me-2"></i>
+                            Priority Breakdown
+                        </h4>
+                        <div class="time-filter">
+                            <select class="form-select form-select-sm">
+                                <option>This Week</option>
+                                <option selected>This Month</option>
+                                <option>This Quarter</option>
+                                <option>This Year</option>
+                            </select>
                         </div>
-                        <a href="javascript:void(0)" class="link">View All</a>
                     </div>
-                    <div class="card-body">
-                        <div class="bubble-container">
-                            <div class="bubble bubble1">2,489</div>
-                            <div class="bubble bubble2">1,756</div>
-                            <div class="bubble bubble3">285</div>
-                            <div class="bubble bubble4">812</div>
-                        </div>
-                        <div class="d-flex align-items-center gap-4 mb-5">
-                            <img src="assets/images/flag/us.svg" height="30" width="30" class="object-fit-cover rounded-circle">
-                            <div class="w-100">
-                                <div class="d-flex justify-content-between align-items-center fs-13">
-                                    <p class="text-muted mb-1">United States</p>
-                                </div>
-                                <div class="progress progress-sm" style="stroke-dasharray: 282.6, 282.6; stroke-dashoffset: 282.6;">
-                                    <div class="progress-bar bg-primary" style="width: 90%"></div>
-                                </div>
-                            </div>
-                            <img src="assets/images/flag/de.svg" height="30" width="30" class="object-fit-cover rounded-circle">
-                            <div class="w-100">
-                                <div class="d-flex justify-content-between align-items-center fs-13">
-                                    <p class="text-muted mb-1">Andorra</p>
-                                </div>
-                                <div class="progress progress-sm" style="stroke-dasharray: 282.6, 282.6; stroke-dashoffset: 282.6;">
-                                    <div class="progress-bar bg-primary" style="width: 70%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-4 mb-5">
-                            <img src="assets/images/flag/ru.svg" height="30" width="30" class="object-fit-cover rounded-circle">
-                            <div class="w-100">
-                                <div class="d-flex justify-content-between align-items-center fs-13">
-                                    <p class="text-muted mb-1">French</p>
-                                </div>
-                                <div class="progress progress-sm" style="stroke-dasharray: 282.6, 282.6; stroke-dashoffset: 282.6;">
-                                    <div class="progress-bar bg-primary" style="width: 70%"></div>
-                                </div>
-                            </div>
-                            <img src="assets/images/flag/cn.svg" height="30" width="30" class="object-fit-cover rounded-circle">
-                            <div class="w-100">
-                                <div class="d-flex justify-content-between align-items-center fs-13">
-                                    <p class="text-muted mb-1">Chinese</p>
-                                </div>
-                                <div class="progress progress-sm" style="stroke-dasharray: 282.6, 282.6; stroke-dashoffset: 282.6;">
-                                    <div class="progress-bar bg-primary" style="width: 25%"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="chart-card-body">
+                        <div id="priority_bar_chart" style="width: 100%; height: 100%;"></div>
+                    </div>
+                    <div class="chart-card-footer">
+                        <small class="text-muted">Showing priority distribution across all tickets</small>
                     </div>
                 </div>
             </div>
-            <div class="col-xxl-4 col-lg-6">
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header pb-4 mb-2">
-                                <h4>Latest Product</h4>
-                                <div class="dropdown">
-                                    <a href="javascript:void(0)" data-bs-toggle="dropdown" class="text-muted" aria-expanded="false">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="javascript:void(0)">This Week</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0)">This Month</a></li>
-                                        <li><a class="dropdown-item" href="javascript:void(0)">This Year</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="card-body product-body bg-body m-4 mt-0">
-                                <img src="assets/images/dashboard/shoeses.png" class="img-fluid mx-auto d-block product-img1" alt="Product Image">
-                                <div class="m-4 mt-0 py-2 px-4 product-gradient">
-                                    <div>
-                                        <span class="fs-12">Shoe</span>
-                                        <p class="fs-5 mb-0">Nike</p>
-                                    </div>
-                                    <div>
-                                        <i class="bi bi-arrow-right-circle-fill fs-3"></i>
+            
+            <div class="col-xl-4 col-lg-12">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-grid-3x3-gap me-2"></i>
+                            Category Distribution
+                        </h4>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="dashboard_category_chart" style="width: 100%; height: 300px;"></div>
+                    </div>
+                    <div class="chart-card-footer">
+                        <small class="text-muted">Top categories by ticket volume</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width Charts -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-8">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Ticket Trends Over Time
+                        </h4>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active">Week</button>
+                            <button type="button" class="btn btn-outline-secondary">Month</button>
+                            <button type="button" class="btn btn-outline-secondary">Quarter</button>
+                            <button type="button" class="btn btn-outline-secondary">Year</button>
+                        </div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="dashboard_ticket_trend_chart" style="height: 320px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-4">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-building me-2"></i>
+                            Top Organizations
+                        </h4>
+                        <small class="text-muted">Last 90 days</small>
+                    </div>
+                    <div class="chart-card-body">
+                        <div class="org-list" id="org_tickets_list">
+                            <!-- Dynamic content will be loaded here -->
+                            <div class="org-item">
+                                <div class="org-name">Loading...</div>
+                                <div class="org-stats">
+                                    <span class="ticket-count">0</span>
+                                    <div class="progress" style="width: 100px; height: 6px;">
+                                        <div class="progress-bar" style="width: 0%"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-center">
-                                    <img src="assets/images/dashboard/enhanced_image.png" class="img-fluid" alt="Enhanced Image">
-                                </div>
-                                <div class="d-flex gap-3 pt-4">
-                                    <a href="#!" class="btn btn-outline-primary w-50">Login / Sign Up</a>
-                                    <a href="#!" class="btn btn-primary w-50">Get Started</a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>  </div>
-        <div class="row">
-            <div class="col-xxl-8">
-                <div class="row h-100">
-                    <div class="col-xl-4 col-sm-6">
-                        <div class="card card-h-100">
-                            <div class="card-body d-flex align-items-center justify-content-around">
-                                <div class="h-48px w-50px position-relative d-flex justify-content-center align-items-center text-primary fs-4 rounded-3 shadow-lg border">
-                                    <i class="bi bi-folder2-open"></i>
-                                </div>
-                                <div>
-                                    <h3>$2,647 <i class="bi bi-graph-up-arrow text-success fw-normal fs-5"></i></h3>
-                                    <span class="fs-5">Today's Sales</span>
-                                    <p class="fs-12 mb-0">Sales Increment Rate</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-4 col-sm-6">
-                        <div class="card card-h-100">
-                            <div class="card-body d-flex align-items-center justify-content-around">
-                                <div class="h-48px w-50px position-relative d-flex justify-content-center align-items-center text-primary fs-4 rounded-3 shadow-lg border">
-                                    <i class="bi bi-bookmark"></i>
-                                </div>
-                                <div>
-                                    <h3>$24,057 <i class="bi bi-graph-up-arrow text-success fw-normal fs-5"></i></h3>
-                                    <span class="fs-5">Total Purchase</span>
-                                    <p class="fs-12 mb-0"><span class="text-success">+8%</span> Completion Rate</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-4 col-sm-6">
-                        <div class="card card-h-100">
-                            <div class="card-body d-flex align-items-center justify-content-around">
-                                <div class="h-48px w-48px position-relative d-flex justify-content-center align-items-center text-primary fs-4 rounded-3 shadow-lg border">
-                                    <i class="bi bi-bookmark"></i>
-                                </div>
-                                <div>
-                                    <h3>47% <i class="bi bi-graph-up-arrow text-success fw-normal fs-5"></i></h3>
-                                    <span class="fs-5">Overall Performance</span>
-                                    <p class="fs-12 mb-0"><span class="text-success">+12%</span>Completion Rate</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xxl-4">
-                <div class="card overflow-hidden bg-primary card-h-100 p-4">
-                    <div class="row">
-                        <div class="col-8">
-                            <div class="vector-image">
-                                <img class="img-fluid welcome-img w-200px mb-n20 mt-n5" src="assets/images/dashboard/upgrade-img.png" alt="CRM Vector">
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="text-end">
-                                <p class="mb-5 fs-16 fw-semibold text-white">Lorem ipsum dolor <br> sit lorem ipsum <br> dolor sit</p>
-                                <a href="javascript:void(0)" class="btn text-white border border-white mt-1">Upgrade</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </
+        </div>
 
-    </div> -->
-
-    <!-- Submit Section -->
+        
+    </div>
 </main>
 
-<script src="assets/libs/echarts/echarts.min.js"></script>
+<!-- Report Generation Modal Component -->
+<jsp:include page="../components/report_modal.jsp" />
+
+<script src="${pageContext.request.contextPath}/assets/libs/echarts/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script>window.CONTEXT_PATH='${pageContext.request.contextPath}';</script>
+<script src="${pageContext.request.contextPath}/assets/js/dashboard.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/report_modal.js"></script>
 <script>
-  const API = '${pageContext.request.contextPath}/api';
-  let lastAnalytics = null;
-  function safeParseJson(t){ try{ return JSON.parse(t);}catch(_){ return null; } }
-  async function fetchText(url, options){ const r=await fetch(url, options||{}); const tx=await r.text(); return { ok:r.ok, status:r.status, text:tx, json:safeParseJson(tx)||{} } }
-  async function loadOrganizationsCount(){ try{ console.group('loadOrganizationsCount'); const {json,text}=await fetchText(API+'/organizations'); console.log('organizations response', text); const rows = Array.isArray(json)?json:(json.organizations||json.data||[]); document.getElementById('org_count').textContent = (rows||[]).length; console.groupEnd(); } catch(e){ console.error('loadOrganizationsCount error', e); } }
-  async function loadTicketStats(){ try{ console.group('loadTicketStats'); const {json,text}=await fetchText(API+'/tickets/stats'); console.log('stats response', text); const stats = json.analytics || json.stats || json.data || json || {}; const open = (stats.open_tickets!=null)?stats.open_tickets:(stats.open!=null)?stats.open:(stats.open_count||0); const inProgress = (stats.in_progress_tickets!=null)?stats.in_progress_tickets:(stats.in_progress!=null)?stats.in_progress:(stats.in_progress_count||0); const resolved = (stats.resolved_tickets!=null)?stats.resolved_tickets:(stats.resolved!=null)?stats.resolved:(stats.resolved_count||0); const closed = (stats.closed_tickets!=null)?stats.closed_tickets:(stats.closed!=null)?stats.closed:(stats.closed_count||0); const total = (stats.total_tickets!=null)?stats.total_tickets:((stats.total||stats.total_count)||(open+inProgress+resolved+closed)); document.getElementById('ticket_total_count').textContent = total; document.getElementById('status_open_count').textContent = open; document.getElementById('status_in_progress_count').textContent = inProgress; document.getElementById('status_resolved_count').textContent = resolved; document.getElementById('status_closed_count').textContent = closed; renderStatusPie({open,inProgress,resolved,closed}); lastAnalytics = stats; console.groupEnd(); } catch(e){ console.error('loadTicketStats error', e); } }
-  async function loadPriorityCounts(){ try{ console.group('loadPriorityCounts'); const counts={critical:0,high:0,medium:0,low:0}; if(lastAnalytics && Array.isArray(lastAnalytics.by_priority)){ lastAnalytics.by_priority.forEach(function(it){ const name=String(it.priority_name||it.name||'').toLowerCase(); const c=Number(it.count||it.total||0); if(name.includes('crit')) counts.critical=c; else if(name.includes('high')) counts.high=c; else if(name.includes('med')) counts.medium=c; else if(name.includes('low')) counts.low=c; }); } document.getElementById('priority_critical_count').textContent = counts.critical; document.getElementById('priority_high_count').textContent = counts.high; renderPriorityBar(counts); console.groupEnd(); } catch(e){ console.error('loadPriorityCounts error', e); } }
-  function renderStatusPie(data){ try{ const el=document.getElementById('status_pie_chart'); if(!el || !window.echarts) return; const chart=echarts.init(el); const option={ tooltip:{}, legend:{ top:0 }, series:[{ type:'pie', radius:['40%','70%'], avoidLabelOverlap:true, label:{ show:true }, data:[ {value:data.open||0, name:'Open'}, {value:data.inProgress||0, name:'In Progress'}, {value:data.resolved||0, name:'Resolved'}, {value:data.closed||0, name:'Closed'} ] }]}; chart.setOption(option); }catch(e){ console.error('renderStatusPie error',e); } }
-  function renderPriorityBar(counts){ try{ const el=document.getElementById('priority_bar_chart'); if(!el || !window.echarts) return; const chart=echarts.init(el); const option={ tooltip:{}, xAxis:{ type:'category', data:['Critical','High','Medium','Low'] }, yAxis:{ type:'value' }, series:[{ type:'bar', data:[ counts.critical||0, counts.high||0, counts.medium||0, counts.low||0 ], itemStyle:{ color:'#2b8a3e' } }]}; chart.setOption(option); }catch(e){ console.error('renderPriorityBar error',e); } }
-  document.addEventListener('DOMContentLoaded', async function(){
-    await loadOrganizationsCount();
-    await loadTicketStats();
-    await loadPriorityCounts();
-  });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enhanced date display
+        const dateOptions = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        const today = new Date();
+        const dateEl = document.getElementById('currentDate');
+        if (dateEl) {
+            dateEl.textContent = today.toLocaleDateString('en-US', dateOptions);
+        }
+        
+        // Update time function
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('lastUpdatedTime').textContent = timeString;
+        }
+        
+        // Update every minute
+        updateLastUpdated();
+        setInterval(updateLastUpdated, 60000);
+        
+        // Add hover effects
+        document.querySelectorAll('.stat-card, .priority-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Add loading animation
+        document.querySelectorAll('.stat-number').forEach(el => {
+            el.innerHTML = '<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+        });
+    });
 </script>

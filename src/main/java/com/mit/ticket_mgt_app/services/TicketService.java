@@ -405,7 +405,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/select_assign_task");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/select_assign_task");
 
             // JSONObject requestJson = new JSONObject(ticketData);
 
@@ -717,12 +717,22 @@ public class TicketService {
         String output = null;
         try {
             Client client = Client.create();
-            WebResource webResource = client.resource(web_service_url + "v1/ticket_service/get_statuses");
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "v1/ticket_service/get_statuses");
 
             ClientResponse response_ws = webResource.type("application/json")
                     .header("x-api-key", web_service_api_key).get(ClientResponse.class);
             if (response_ws.getStatus() != 200) {
-                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus());
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                logger.severe("getStatuses failed: " + response_ws.getStatus() + " | Body: " + errBody);
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null ? " | Body: " + errBody : ""));
             }
             output = response_ws.getEntity(String.class);
         } catch (Exception e) {
@@ -740,12 +750,22 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/get_statuses");
-            ClientResponse response_ws = webResource.type("application/json")
-                    .header("x-api-key", web_service_api_key)
+            String fullUrl = base + "tickets_mgt_services/get_statuses";
+            logger.info("getStatusesMgt calling: " + fullUrl);
+
+            WebResource webResource = client.resource(fullUrl);
+            ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, "{}");
+
             if (response_ws.getStatus() != 200) {
-                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus());
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                logger.severe("getStatusesMgt failed: " + response_ws.getStatus() + " | Body: " + errBody);
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null ? " | Body: " + errBody : ""));
             }
             output = response_ws.getEntity(String.class);
         } catch (Exception e) {
@@ -762,9 +782,8 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/add_status");
-            ClientResponse response_ws = webResource.type("application/json")
-                    .header("x-api-key", web_service_api_key)
+            WebResource webResource = client.resource(base + "tickets_mgt_services/add_status");
+            ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
             if (response_ws.getStatus() != 200) {
                 throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus());
@@ -784,7 +803,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/update_status");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/update_status");
             ClientResponse response_ws = webResource.type("application/json")
                     .header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
@@ -806,7 +825,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/delete_status");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/delete_status");
             ClientResponse response_ws = webResource.type("application/json")
                     .header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
@@ -828,7 +847,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/get_status_by_id");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_status_by_id");
             ClientResponse response_ws = webResource.type("application/json")
                     .header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
@@ -921,7 +940,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/get_categories");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_categories");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, "{}");
             if (response_ws.getStatus() != 200) {
@@ -942,7 +961,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/add_category");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/add_category");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
             if (response_ws.getStatus() != 200) {
@@ -963,7 +982,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/delete_category");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/delete_category");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
             if (response_ws.getStatus() != 200) {
@@ -984,7 +1003,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/get_priorities");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_priorities");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, "{}");
             if (response_ws.getStatus() != 200) {
@@ -1005,7 +1024,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/add_priority");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/add_priority");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
             if (response_ws.getStatus() != 200) {
@@ -1026,7 +1045,7 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "api/tickets_mgt_services/delete_priority");
+            WebResource webResource = client.resource(base + "tickets_mgt_services/delete_priority");
             ClientResponse response_ws = webResource.type("application/json").header("x-api-key", web_service_api_key)
                     .post(ClientResponse.class, json_request);
             if (response_ws.getStatus() != 200) {
@@ -1240,6 +1259,90 @@ public class TicketService {
         return output;
     }
 
+    public String getSystemDashboardData(String web_service_url, String web_service_api_key, String startDate,
+            String endDate) {
+        String output = null;
+        try {
+            Client client = Client.create();
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_system_dashboard_data");
+
+            JSONObject requestJson = new JSONObject();
+            if (startDate != null && !startDate.isEmpty()) {
+                requestJson.put("start_date", startDate);
+                requestJson.put("from_date", startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                requestJson.put("end_date", endDate);
+                requestJson.put("to_date", endDate);
+            }
+
+            ClientResponse response_ws = webResource.type("application/json")
+                    .header("x-api-key", web_service_api_key)
+                    .post(ClientResponse.class, requestJson.toString());
+
+            if (response_ws.getStatus() != 200) {
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
+            }
+            output = response_ws.getEntity(String.class);
+        } catch (Exception e) {
+            logger.severe("Error getting system dashboard data: " + e.getMessage());
+            throw new RuntimeException("Error getting system dashboard data: " + e.getMessage(), e);
+        }
+        return output;
+    }
+
+    public String getTicketsListForDashboard(String web_service_url, String web_service_api_key, String startDate,
+            String endDate, Integer limit) {
+        String output = null;
+        try {
+            Client client = Client.create();
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_tickets_list_for_dashboard");
+
+            JSONObject requestJson = new JSONObject();
+            if (startDate != null && !startDate.isEmpty()) {
+                requestJson.put("start_date", startDate);
+                requestJson.put("from_date", startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                requestJson.put("end_date", endDate);
+                requestJson.put("to_date", endDate);
+            }
+            if (limit != null)
+                requestJson.put("limit", limit);
+
+            ClientResponse response_ws = webResource.type("application/json")
+                    .header("x-api-key", web_service_api_key)
+                    .post(ClientResponse.class, requestJson.toString());
+
+            if (response_ws.getStatus() != 200) {
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
+            }
+            output = response_ws.getEntity(String.class);
+        } catch (Exception e) {
+            logger.severe("Error getting tickets list for dashboard: " + e.getMessage());
+            throw new RuntimeException("Error getting tickets list for dashboard: " + e.getMessage(), e);
+        }
+        return output;
+    }
+
     // public String update_task_by_id(String web_service_url, String
     // web_service_api_key, Map<String, Object> ticketData) {
     // String output = null;
@@ -1293,4 +1396,120 @@ public class TicketService {
 
     // return output;
     // }
+
+    public String getUserOrgDashboardData(String web_service_url, String web_service_api_key, String userId,
+            String orgId, String startDate, String endDate) {
+        String output = null;
+        try {
+            Client client = Client.create();
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_user_org_dashboard_data");
+
+            // Also add as query param for robustness
+            if (orgId != null && !orgId.isEmpty()) {
+                webResource = webResource.queryParam("org_id", orgId);
+                webResource = webResource.queryParam("organization_id", orgId);
+            }
+
+            JSONObject requestJson = new JSONObject();
+            if (userId != null && !userId.isEmpty())
+                requestJson.put("user_id", userId);
+            if (orgId != null && !orgId.isEmpty()) {
+                requestJson.put("org_id", orgId);
+                requestJson.put("organization_id", orgId);
+                requestJson.put("organizationId", orgId); // Add camelCase
+            }
+            if (startDate != null && !startDate.isEmpty()) {
+                requestJson.put("start_date", startDate);
+                requestJson.put("from_date", startDate);
+            }
+            if (endDate != null && !endDate.isEmpty()) {
+                requestJson.put("end_date", endDate);
+                requestJson.put("to_date", endDate);
+            }
+
+            ClientResponse response_ws = webResource.type("application/json")
+                    .header("x-api-key", web_service_api_key)
+                    .post(ClientResponse.class, requestJson.toString());
+
+            if (response_ws.getStatus() != 200) {
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
+            }
+            output = response_ws.getEntity(String.class);
+        } catch (Exception e) {
+            logger.severe("Error getting user org dashboard data: " + e.getMessage());
+            throw new RuntimeException("Error getting user org dashboard data: " + e.getMessage(), e);
+        }
+        return output;
+    }
+
+    public String getOrgArchivedTasks(String web_service_url, String web_service_api_key, String jsonRequest) {
+        String output = null;
+        try {
+            Client client = Client.create();
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_org_archived_tasks");
+
+            ClientResponse response_ws = webResource.type("application/json")
+                    .header("x-api-key", web_service_api_key)
+                    .post(ClientResponse.class, jsonRequest);
+
+            if (response_ws.getStatus() != 200) {
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
+            }
+            output = response_ws.getEntity(String.class);
+        } catch (Exception e) {
+            logger.severe("Error getting archived tasks: " + e.getMessage());
+            throw new RuntimeException("Error getting archived tasks: " + e.getMessage(), e);
+        }
+
+        return output;
+    }
+
+    public String fetchArchivedTickets(String web_service_url, String web_service_api_key, String jsonRequest) {
+        String output = null;
+        try {
+            Client client = Client.create();
+            String base = web_service_url == null ? "" : web_service_url;
+            if (!base.endsWith("/"))
+                base += "/";
+            WebResource webResource = client.resource(base + "tickets_mgt_services/fetch_archived_tickets");
+
+            ClientResponse response_ws = webResource.type("application/json")
+                    .header("x-api-key", web_service_api_key)
+                    .post(ClientResponse.class, jsonRequest);
+
+            if (response_ws.getStatus() != 200) {
+                String errBody = null;
+                try {
+                    errBody = response_ws.getEntity(String.class);
+                } catch (Exception ignore) {
+                }
+                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
+                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
+            }
+            output = response_ws.getEntity(String.class);
+        } catch (Exception e) {
+            logger.severe("Error fetching archived tickets: " + e.getMessage());
+            throw new RuntimeException("Error fetching archived tickets: " + e.getMessage(), e);
+        }
+
+        return output;
+    }
 }

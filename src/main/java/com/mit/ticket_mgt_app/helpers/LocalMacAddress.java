@@ -34,6 +34,6 @@ public class LocalMacAddress {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return "00-00-00-00-00-00";
+        return "00:00:00:00:00:00";
     }
 }

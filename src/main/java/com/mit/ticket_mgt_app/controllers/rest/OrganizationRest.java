@@ -17,7 +17,7 @@ import com.mit.ticket_mgt_app.config.WebServiceURLConfig;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
-@RequestMapping("/api/organizations")
+@RequestMapping("/v1/organization_service")
 public class OrganizationRest {
 
     @Autowired
@@ -34,76 +34,278 @@ public class OrganizationRest {
         this.wsURLConfig = wsURLConfig;
     }
 
-    @GetMapping("")
+    @GetMapping("/get_all_organizations")
     public ResponseEntity<?> loadOrganizations(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = organizationService.loadOrganizations( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(), "{}");
+            webServiceResponse = organizationService.loadOrganizations(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), "{}");
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to load organizations: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to load organizations: " + e.getMessage() + "\"}");
         }
     }
 
-    @PostMapping("")
+    @PostMapping("/add_organization")
     public ResponseEntity<?> createOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = organizationService.createOrganization( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            webServiceResponse = organizationService.createOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to create organization: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to create organization: " + e.getMessage() + "\"}");
         }
     }
 
-    @PostMapping("/{orgId}/block")
-    public ResponseEntity<?> blockOrganization(@PathVariable String orgId, HttpSession session) {
+    @PostMapping("/block_organization")
+    public ResponseEntity<?> blockOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = organizationService.blockOrganization( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
+            String orgId = (String) payload.get("org_id");
+            webServiceResponse = organizationService.blockOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to block organization: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to block organization: " + e.getMessage() + "\"}");
         }
     }
 
-    @PostMapping("/{orgId}/unblock")
-    public ResponseEntity<?> unblockOrganization(@PathVariable String orgId, HttpSession session) {
+    @PostMapping("/unblock_organization")
+    public ResponseEntity<?> unblockOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = organizationService.unblockOrganization( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
+            String orgId = (String) payload.get("org_id");
+            webServiceResponse = organizationService.unblockOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to unblock organization: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to unblock organization: " + e.getMessage() + "\"}");
         }
     }
 
-    @PostMapping("/{orgId}/update")
-    public ResponseEntity<?> updateOrganization(@PathVariable String orgId, @RequestBody Map<String, Object> payload, HttpSession session) {
+    @PostMapping("/fetch_archived_tickets")
+    public ResponseEntity<?> fetchArchivedTickets(@RequestBody Map<String, Object> payload, HttpSession session) {
+        try {
+            // Add user info to payload if available
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                System.out.println("DEBUG: OrganizationRest session userInfo: " + userInfo);
+                if (userInfo != null) {
+                    // Extract User ID
+                    if (!payload.containsKey("user_id")) {
+                        Object uniqueId = userInfo.get("unique_id");
+                        Object userId = userInfo.get("user_id");
+                        Object id = userInfo.get("id");
+
+                        // Prefer UUID (unique_id)
+                        if (uniqueId != null && isValidUUID(uniqueId.toString())) {
+                            payload.put("user_id", uniqueId.toString());
+                        } else if (userId != null && isValidUUID(userId.toString())) {
+                            payload.put("user_id", userId.toString());
+                        } else if (id != null && isValidUUID(id.toString())) {
+                            payload.put("user_id", id.toString());
+                        } else {
+                            // If no valid UUID found, do NOT send numeric ID to avoid DB type mismatch
+                            // If needed, we can log this scenario
+                            System.out.println(
+                                    "DEBUG: No valid UUID found for user_id. Skipping injection to avoid type mismatch. Available IDs: unique_id="
+                                            + uniqueId + ", id=" + id);
+                        }
+                    }
+
+                    // Extract Organization ID
+                    if (!payload.containsKey("org_id")) {
+                        Object orgId = userInfo.get("org_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("organization_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("organizationId");
+                        if (orgId == null)
+                            orgId = userInfo.get("company_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("business_id");
+
+                        if (orgId == null) {
+                            // Check for nested organization object
+                            Object orgObj = userInfo.get("organization");
+                            if (orgObj instanceof Map) {
+                                Map<?, ?> orgMap = (Map<?, ?>) orgObj;
+                                if (orgMap.get("id") != null)
+                                    orgId = orgMap.get("id");
+                                else if (orgMap.get("org_id") != null)
+                                    orgId = orgMap.get("org_id");
+                            }
+                        }
+
+                        if (orgId != null) {
+                            payload.put("org_id", orgId);
+                        } else {
+                            System.out.println("DEBUG: Organization ID not found in session for getOrgArchivedTasks.");
+                            // Attempt to use user_id as org_id if user is System Owner?
+                            // This is a guess, but if the user is a system owner, maybe their ID maps to
+                            // the main org?
+                            // Let's NOT guess too much, but print the debug.
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+
+            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            webServiceResponse = organizationService.fetchArchivedTickets(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(webServiceResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to fetch archived tickets: " + e.getMessage()
+                            + "\"}");
+        }
+    }
+
+    @PostMapping("/get_org_archived_tasks")
+    public ResponseEntity<?> getOrgArchivedTasks(@RequestBody Map<String, Object> payload, HttpSession session) {
+        try {
+            // Add user info to payload if available
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                System.out.println("DEBUG: OrganizationRest getOrgArchivedTasks userInfo: " + userInfo);
+                if (userInfo != null) {
+                    // Extract User ID
+                    if (!payload.containsKey("user_id")) {
+                        Object uniqueId = userInfo.get("unique_id");
+                        Object userId = userInfo.get("user_id");
+                        Object id = userInfo.get("id");
+
+                        // Prefer UUID (unique_id)
+                        if (uniqueId != null && isValidUUID(uniqueId.toString())) {
+                            payload.put("user_id", uniqueId.toString());
+                        } else if (userId != null && isValidUUID(userId.toString())) {
+                            payload.put("user_id", userId.toString());
+                        } else if (id != null && isValidUUID(id.toString())) {
+                            payload.put("user_id", id.toString());
+                        } else {
+                            // If no valid UUID found, do NOT send numeric ID to avoid DB type mismatch
+                            System.out.println(
+                                    "DEBUG: No valid UUID found for user_id. Skipping injection to avoid type mismatch. Available IDs: unique_id="
+                                            + uniqueId + ", id=" + id);
+                        }
+                    }
+
+                    // Extract Organization ID
+                    if (!payload.containsKey("org_id")) {
+                        Object orgId = userInfo.get("org_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("organization_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("organizationId");
+                        if (orgId == null)
+                            orgId = userInfo.get("company_id");
+                        if (orgId == null)
+                            orgId = userInfo.get("business_id");
+
+                        if (orgId == null) {
+                            // Check for nested organization object
+                            Object orgObj = userInfo.get("organization");
+                            if (orgObj instanceof Map) {
+                                Map<?, ?> orgMap = (Map<?, ?>) orgObj;
+                                if (orgMap.get("id") != null)
+                                    orgId = orgMap.get("id");
+                                else if (orgMap.get("org_id") != null)
+                                    orgId = orgMap.get("org_id");
+                            }
+                        }
+
+                        if (orgId != null) {
+                            payload.put("org_id", orgId);
+                        } else {
+                            System.out.println("DEBUG: Organization ID not found in session for getOrgArchivedTasks.");
+                        }
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+
+            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            webServiceResponse = organizationService.getOrgArchivedTasks(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(webServiceResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to get organization archived tasks: "
+                            + e.getMessage() + "\"}");
+        }
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/update_organization")
+    public ResponseEntity<?> updateOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            obj.put("org_id", orgId);
-            webServiceResponse = organizationService.updateOrganization( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            webServiceResponse = organizationService.updateOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to update organization: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to update organization: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/get_organization_by_id")
+    public ResponseEntity<?> getOrganizationById(@RequestBody Map<String, Object> payload, HttpSession session) {
+        // if (!isAuthenticatedUtil.isAuthenticated(session)) {
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
+        // }
+        try {
+            String orgId = (String) payload.get("org_id");
+            webServiceResponse = organizationService.getOrganizationById(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
+            return ResponseEntity.ok(webServiceResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to get organization: " + e.getMessage() + "\"}");
+        }
+    }
+
+    private boolean isValidUUID(String uuid) {
+        if (uuid == null)
+            return false;
+        try {
+            java.util.UUID.fromString(uuid);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 }

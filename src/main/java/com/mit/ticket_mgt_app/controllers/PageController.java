@@ -259,6 +259,30 @@ public class PageController {
         return "layouts/app";
     }
 
+    @GetMapping("/tickets/my_tasks")
+    public String myTasks(Model model, HttpSession session) {
+        model.addAttribute("content", "../pages/tickets/my_tasks.jsp");
+        model.addAttribute("page_name", "My Tasks");
+        model.addAttribute("currentRoute", "/tickets/my_tasks");
+        return "layouts/app";
+    }
+
+    @GetMapping("/tickets/assigned_jobs")
+    public String assignedJobs(Model model, HttpSession session) {
+        model.addAttribute("content", "../pages/tickets/assigned_jobs.jsp");
+        model.addAttribute("page_name", "Assigned Jobs");
+        model.addAttribute("currentRoute", "/tickets/assigned_jobs");
+        return "layouts/app";
+    }
+
+    @GetMapping("/organizations/archive")
+    public String organizationsArchive(Model model, HttpSession session) {
+        model.addAttribute("content", "../pages/organizations/archive.jsp");
+        model.addAttribute("page_name", "Organization Archive");
+        model.addAttribute("currentRoute", "/organizations/archive");
+        return "layouts/app";
+    }
+
     @GetMapping("/knowledge-base")
     public String knowledgeBase(Model model, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
