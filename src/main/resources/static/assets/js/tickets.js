@@ -66,111 +66,131 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- DataTable Initialization ---
-    const table = $('#tickets-datatable').DataTable({
-        columns: [
-            { 
-                data: null, 
-                orderable: false, 
-                render: function() { 
-                    return '<div class="form-check"><input class="form-check-input row-select" type="checkbox"></div>'; 
-                } 
+    let table = null;
+    if ($('#tickets-datatable').length > 0) {
+        table = $('#tickets-datatable').DataTable({
+            columns: [
+                { 
+                    data: null, 
+                    orderable: false, 
+                    render: function() { 
+                        return '<div class="form-check"><input class="form-check-input row-select" type="checkbox"></div>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: true, 
+                    render: function(_, __, row) { 
+                        return '<span class="fw-semibold">' + (row.task_ticket_no || row.ticket_number || row.ticket_no || 'N/A') + '</span>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: true, 
+                    render: function(_, __, row) { 
+                        return '<div class="ticket-title">' + (row.task_subject || row.title || 'No Title') + '</div>'; 
+                    } 
+                },
+                { 
+                    data: 'task_type', 
+                    render: function(data) { 
+                        return '<span class="text-muted">' + (data || 'N/A') + '</span>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: true, 
+                    render: function(_, __, row) { 
+                        const cls = getPriorityClass(row.priority_level);
+                        const name = row.task_priority || row.priority_name || 'Normal';
+                        return '<span class="badge bg-light-' + cls + ' text-' + cls + '">' + name + '</span>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: true, 
+                    render: function(_, __, row) { 
+                        const raw = row.task_status || row.status_name || 'Open'; 
+                        const s = String(raw).toLowerCase() === 'assigned' ? 'In Progress' : raw; 
+                        const cls = getStatusClass(s);
+                        return '<span class="badge bg-' + cls + '">' + s + '</span>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: true, 
+                    render: function(_, __, row) { 
+                        return row.task_assigned_to || row.assigned_to_name || '<span class="text-muted">Unassigned</span>'; 
+                    } 
+                },
+                { 
+                    data: null, 
+                    render: function(_, __, row) { 
+                        return formatDate(row.created_date || row.created_at); 
+                    } 
+                },
+                { 
+                    data: null, 
+                    render: function(_, __, row) { 
+                        return formatDate(row.task_due_date || row.due_date); 
+                    } 
+                },
+                { 
+                    data: null, 
+                    orderable: false, 
+                    className: 'text-end', 
+                    render: function(_, __, row) { 
+                        const userRole = (typeof CURRENT_USER_ROLE !== 'undefined' ? CURRENT_USER_ROLE : '').toLowerCase();
+                        const isAdmin = userRole.includes('admin') || userRole.includes('manager') || userRole.includes('owner');
+                        
+                        let actions = '<div class="d-flex gap-2 justify-content-end">';
+                        
+                        if (isAdmin) {
+                            actions += `
+                                <button type="button" class="btn btn-light-warning icon-btn-sm btn-assign" 
+                                        data-task-id="${row.ticket_id || row.task_id || ''}" 
+                                        title="Assign Ticket">
+                                    <i class="bi bi-person-plus"></i>
+                                </button>
+                            `;
+                        }
+                        
+                        actions += `
+                                <button type="button" class="btn btn-light-info icon-btn-sm btn-view" 
+                                        data-task-id="${row.ticket_id || row.task_id || ''}" 
+                                        data-task-uid="${row.task_uid || ''}" title="View Ticket">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-light-primary icon-btn-sm btn-edit" 
+                                        data-task-id="${row.ticket_id || row.task_id || ''}" title="Edit Ticket">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                        `; 
+                        return actions;
+                    } 
+                }
+            ],
+            dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search tickets...",
+                lengthMenu: "_MENU_ items per page",
+                paginate: {
+                    previous: '<i class="bi bi-chevron-left"></i>',
+                    next: '<i class="bi bi-chevron-right"></i>'
+                }
             },
-            { 
-                data: null, 
-                orderable: true, 
-                render: function(_, __, row) { 
-                    return '<span class="fw-semibold">' + (row.task_ticket_no || row.ticket_number || row.ticket_no || 'N/A') + '</span>'; 
-                } 
-            },
-            { 
-                data: null, 
-                orderable: true, 
-                render: function(_, __, row) { 
-                    return '<div class="ticket-title">' + (row.task_subject || row.title || 'No Title') + '</div>'; 
-                } 
-            },
-            { 
-                data: 'task_type', 
-                render: function(data) { 
-                    return '<span class="text-muted">' + (data || 'N/A') + '</span>'; 
-                } 
-            },
-            { 
-                data: null, 
-                orderable: true, 
-                render: function(_, __, row) { 
-                    const cls = getPriorityClass(row.priority_level);
-                    const name = row.task_priority || row.priority_name || 'Normal';
-                    return '<span class="badge bg-light-' + cls + ' text-' + cls + '">' + name + '</span>'; 
-                } 
-            },
-            { 
-                data: null, 
-                orderable: true, 
-                render: function(_, __, row) { 
-                    const raw = row.task_status || row.status_name || 'Open'; 
-                    const s = String(raw).toLowerCase() === 'assigned' ? 'In Progress' : raw; 
-                    const cls = getStatusClass(s);
-                    return '<span class="badge bg-' + cls + '">' + s + '</span>'; 
-                } 
-            },
-            { 
-                data: null, 
-                orderable: true, 
-                render: function(_, __, row) { 
-                    return row.task_assigned_to || row.assigned_to_name || '<span class="text-muted">Unassigned</span>'; 
-                } 
-            },
-            { 
-                data: null, 
-                render: function(_, __, row) { 
-                    return formatDate(row.created_date || row.created_at); 
-                } 
-            },
-            { 
-                data: null, 
-                render: function(_, __, row) { 
-                    return formatDate(row.task_due_date || row.due_date); 
-                } 
-            },
-            { 
-                data: null, 
-                orderable: false, 
-                className: 'text-end', 
-                render: function(_, __, row) { 
-                    return `
-                        <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" class="btn btn-light-info icon-btn-sm btn-view" 
-                                    data-task-id="${row.ticket_id || row.task_id || ''}" 
-                                    data-task-uid="${row.task_uid || ''}" title="View Ticket">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-light-primary icon-btn-sm btn-edit" 
-                                    data-task-id="${row.ticket_id || row.task_id || ''}" title="Edit Ticket">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </div>`; 
-                } 
-            }
-        ],
-        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
-             "<'row'<'col-sm-12'tr>>" +
-             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-        language: {
-            search: "_INPUT_",
-            searchPlaceholder: "Search tickets...",
-            lengthMenu: "_MENU_ items per page",
-            paginate: {
-                previous: '<i class="bi bi-chevron-left"></i>',
-                next: '<i class="bi bi-chevron-right"></i>'
-            }
-        },
-        pageLength: 10,
-        order: [[7, 'desc']] // Order by created date by default
-    });
+            pageLength: 10,
+            order: [[7, 'desc']] // Order by created date by default
+        });
+    }
 
     // --- Data Loading ---
     async function loadTickets() { 
+        if (!table) return; // Skip if table not initialized
         try { 
             const r = await fetch(TICKET_API + '/list'); 
             const t = await r.text(); 
@@ -185,6 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function renderTickets() { 
+        if (!table) return;
         table.clear(); 
         
         let filteredRows = allRows;
@@ -369,8 +390,14 @@ document.addEventListener('DOMContentLoaded', function() {
             priority_id: document.getElementById('priority_id').value,
             status_id: document.getElementById('status_id').value,
             due_date: document.getElementById('due_date').value,
-            organization_id: document.getElementById('organization_id').value
+            organization_id: document.getElementById('organization_id').value,
+            org_id: document.getElementById('organization_id').value
         }; 
+
+        if (typeof CURRENT_USER_ID !== 'undefined' && CURRENT_USER_ID) {
+            payload.user_id = CURRENT_USER_ID;
+            payload.created_by = CURRENT_USER_ID;
+        } 
 
         try { 
             const response = await fetch(TICKET_API + '/create', { 
@@ -405,6 +432,93 @@ document.addEventListener('DOMContentLoaded', function() {
             } 
         } 
         return true; 
+    }
+
+    // --- Assign Ticket ---
+    async function loadAgents() {
+        try {
+            const sel = document.getElementById('assign_task_to');
+            if (!sel || (sel.children.length > 1 && sel.value)) return; // Already loaded
+
+            const r = await fetch(TICKET_API + '/users_for_assignment');
+            const t = await r.text();
+            const d = safeParseJson(t) || {};
+            const users = Array.isArray(d) ? d : (d.data || d.users || []);
+            
+            sel.innerHTML = '<option value="">Select Agent</option>' + 
+                (Array.isArray(users) ? users : []).map(u => {
+                    const id = u.id || u.user_id || u.unique_id;
+                    const name = u.full_name || u.username || u.email;
+                    return `<option value="${id}">${name}</option>`;
+                }).join('');
+        } catch (e) {
+            console.error('Error loading agents', e);
+        }
+    }
+
+    function openAssignModal(taskId) {
+        // Find row data
+        const row = table.rows().data().toArray().find(r => 
+            String(r.ticket_id || r.task_id) === String(taskId)
+        );
+        
+        if (!row) return;
+        
+        const idInput = document.getElementById('assign_task_id');
+        const subjInput = document.getElementById('assign_task_subject');
+        const prioInput = document.getElementById('assign_task_priority');
+        const notesInput = document.getElementById('assign_notes');
+        
+        if(idInput) idInput.value = taskId;
+        if(subjInput) subjInput.value = row.task_subject || row.title || '';
+        if(prioInput) prioInput.value = row.priority_name || row.priority || '';
+        if(notesInput) notesInput.value = '';
+        
+        loadAgents();
+        
+        const modalEl = document.getElementById('assignTicketModal');
+        if(modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    }
+    
+    async function assignTicket() {
+        const taskId = document.getElementById('assign_task_id').value;
+        const agentId = document.getElementById('assign_task_to').value;
+        
+        if (!agentId) {
+            showNotification('Please select an agent', 'error');
+            return;
+        }
+        
+        try {
+            const p = new URLSearchParams();
+            p.append('task_id', taskId);
+            p.append('user_to_assign_id', agentId);
+            
+            const r = await fetch(TICKET_API + '/assign_ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: p.toString()
+            });
+            
+            const t = await r.text();
+            const d = safeParseJson(t) || {};
+            
+            if (d.status === 'success' || d.status === 'Success' || d.msg === 'Ticket assigned successfully') {
+                showNotification('Ticket assigned successfully', 'success');
+                const modalEl = document.getElementById('assignTicketModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+                loadTickets();
+            } else {
+                showNotification((d.message || d.error || 'Failed to assign ticket'), 'error');
+            }
+        } catch (e) {
+            console.error('Error assigning ticket', e);
+            showNotification('Error assigning ticket', 'error');
+        }
     }
 
     // --- Select/Option Loading ---
@@ -462,6 +576,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const createBtn = document.getElementById('createTicketBtn');
     if (createBtn) createBtn.addEventListener('click', createTicket);
+    
+    const assignSubmitBtn = document.getElementById('assignTicketBtn');
+    if (assignSubmitBtn) assignSubmitBtn.addEventListener('click', assignTicket);
 
     $('#createTicketModal').on('shown.bs.modal', async function() {
         await Promise.all([
@@ -474,6 +591,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Global click listener for dynamic elements
     document.addEventListener('click', function(e) {
+        const assignBtn = e.target.closest('.btn-assign');
+        if (assignBtn) {
+            openAssignModal(assignBtn.dataset.taskId);
+            return;
+        }
+
         const viewBtn = e.target.closest('.btn-view');
         if (viewBtn) {
             viewTicket(viewBtn.dataset.taskId, viewBtn.dataset.taskUid);

@@ -455,8 +455,32 @@ public class TicketRest {
                 @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
                         .getAttribute("userInfo");
-                if (userInfo != null && userInfo.get("id") != null) {
-                    obj.put("created_by", Integer.parseInt(userInfo.get("id").toString()));
+
+                if (userInfo != null) {
+                    // Try to find user ID (can be "id", "user_id", or "userId")
+                    Object userIdObj = userInfo.get("id");
+                    if (userIdObj == null)
+                        userIdObj = userInfo.get("user_id");
+                    if (userIdObj == null)
+                        userIdObj = userInfo.get("userId");
+
+                    if (userIdObj != null) {
+                        try {
+                            int userId = Integer.parseInt(userIdObj.toString());
+                            obj.put("created_by", userId);
+                            obj.put("user_id", userId);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Error parsing user ID from session: " + userIdObj);
+                        }
+                    } else {
+                        System.err.println("User ID not found in session userInfo: " + userInfo.keySet());
+                    }
+
+                    // Map org_id to target_org_id if present (for system owners creating tickets
+                    // for others)
+                    if (obj.has("org_id") && !obj.has("target_org_id")) {
+                        obj.put("target_org_id", obj.get("org_id"));
+                    }
                 }
             } catch (Exception ignore) {
             }
@@ -539,8 +563,32 @@ public class TicketRest {
                 @SuppressWarnings("unchecked")
                 java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
                         .getAttribute("userInfo");
-                if (userInfo != null && userInfo.get("id") != null) {
-                    obj.put("created_by", Integer.parseInt(userInfo.get("id").toString()));
+
+                if (userInfo != null) {
+                    // Try to find user ID (can be "id", "user_id", or "userId")
+                    Object userIdObj = userInfo.get("id");
+                    if (userIdObj == null)
+                        userIdObj = userInfo.get("user_id");
+                    if (userIdObj == null)
+                        userIdObj = userInfo.get("userId");
+
+                    if (userIdObj != null) {
+                        try {
+                            int userId = Integer.parseInt(userIdObj.toString());
+                            obj.put("created_by", userId);
+                            obj.put("user_id", userId);
+                        } catch (NumberFormatException e) {
+                            System.err.println("Error parsing user ID from session: " + userIdObj);
+                        }
+                    } else {
+                        System.err.println("User ID not found in session userInfo: " + userInfo.keySet());
+                    }
+
+                    // Map org_id to target_org_id if present (for system owners creating tickets
+                    // for others)
+                    if (obj.has("org_id") && !obj.has("target_org_id")) {
+                        obj.put("target_org_id", obj.get("org_id"));
+                    }
                 }
             } catch (Exception ignore) {
             }

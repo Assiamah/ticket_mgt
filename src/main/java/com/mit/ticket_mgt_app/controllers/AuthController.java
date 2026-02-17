@@ -309,6 +309,16 @@ public class AuthController {
                     "passKey",
                     resData.getString("unique_id"));
 
+            // Store full user info in session
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> userInfo = mapper.readValue(resData.toString(), new TypeReference<Map<String, Object>>() {});
+                session.setAttribute("userInfo", userInfo);
+                System.out.println("DEBUG: AuthController populated userInfo in session: " + userInfo);
+            } catch (Exception e) {
+                System.err.println("Error parsing userInfo from resData: " + e.getMessage());
+            }
+
             // --- Assigned menus (convert to tree) ---
             JSONObject menus = resData.getJSONObject("menus");
             JSONArray menuArray = menus.getJSONArray("data");

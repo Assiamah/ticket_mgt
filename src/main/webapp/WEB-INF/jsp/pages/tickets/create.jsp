@@ -767,9 +767,10 @@
                 
                 const subject = $('#task_subject').val();
                 const desc = $('#task_description').val();
-                const priority = $('#priority_id').val();
+                const priorityId = $('#priority_id').val();
+                const priorityText = $('#priority_id option:selected').text();
                 const type = $('#task_type').val();
-                const category = $('#category_id').val();
+                const categoryId = $('#category_id').val();
                 const product = $('#product_id').val();
                 const dueDate = $('#due_date').val();
                 const orgId = $('#createTicketForm').data('org-id') || $('#organization_id_hidden').val();
@@ -777,12 +778,15 @@
                 const payload = {
                     title: subject,
                     description: desc,
-                    priority: priority,
+                    priority: priorityText,
+                    priority_id: priorityId,
                     task_type: type,
-                    category: category,
+                    category_id: categoryId,
                     product_id: product,
                     status: 'open',
-                    org_id: orgId // Pass organization UUID
+                    target_org_id: orgId, // Pass target organization UUID
+                    created_by: "${userInfo.id}",
+                    user_id: "${userInfo.id}"
                 };
                 
                 if (dueDate) {

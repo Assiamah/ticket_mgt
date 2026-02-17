@@ -242,8 +242,17 @@ public class OrganizationRest {
 
                         if (orgId != null) {
                             payload.put("org_id", orgId);
+                            // Also put organization_id for SQL compatibility
+                            if (!payload.containsKey("organization_id")) {
+                                payload.put("organization_id", orgId);
+                            }
                         } else {
                             System.out.println("DEBUG: Organization ID not found in session for getOrgArchivedTasks.");
+                        }
+                    } else {
+                        // If payload has org_id, ensure organization_id is also present
+                        if (!payload.containsKey("organization_id") && payload.get("org_id") != null) {
+                            payload.put("organization_id", payload.get("org_id"));
                         }
                     }
                 }

@@ -777,5 +777,38 @@
 
 </main>
 
-<script>window.CONTEXT_PATH='${pageContext.request.contextPath}';</script>
-<script src="${pageContext.request.contextPath}/assets/js/accounts.js"></script>
+<script>
+     window.CONTEXT_PATH='${pageContext.request.contextPath}';
+     window.CURRENT_USER_ROLE = "${userInfo.role}";
+     
+     // Debug role visible on screen
+     document.addEventListener('DOMContentLoaded', function() {
+        const role = window.CURRENT_USER_ROLE;
+        if (!role || role.trim() === '') {
+            console.error('User role is missing!');
+        }
+        
+        // Check if debug banner already exists
+        if (!document.getElementById('debug-role-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'debug-role-banner';
+            banner.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #ffc107; color: #000; text-align: center; padding: 5px; z-index: 9999; font-weight: bold; font-size: 12px;';
+            banner.innerHTML = 'DEBUG: Current User Role = [' + role + ']';
+            
+            // Only show if we suspect an issue (or always for now to verify)
+            // document.body.appendChild(banner); 
+            
+            // Log to console is better for now, but user can't see console.
+            // I will add a small text in the page header instead of a banner.
+            const header = document.querySelector('.page-title');
+            if(header) {
+                 const debugSpan = document.createElement('span');
+                 debugSpan.className = 'badge bg-warning text-dark ms-2';
+                 debugSpan.style.fontSize = '0.6em';
+                 debugSpan.textContent = 'Role: ' + (role || 'None');
+                 header.appendChild(debugSpan);
+            }
+        }
+     });
+ </script>
+ <script src="${pageContext.request.contextPath}/assets/js/accounts.js?v=${pageContext.session.lastAccessedTime}"></script>

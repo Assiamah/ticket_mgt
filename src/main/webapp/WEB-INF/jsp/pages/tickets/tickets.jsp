@@ -713,6 +713,8 @@
 <script>
     const TICKET_API_BASE = "${pageContext.request.contextPath}/api/tickets";
     const ORG_API = "${pageContext.request.contextPath}/api/organizations";
+    const USER_API = "${pageContext.request.contextPath}/api/users";
     const CURRENT_USER_ID = "${userInfo.id}";
+    const CURRENT_USER_ROLE = "${userInfo.role}";
 </script>
 <script src="${pageContext.request.contextPath}/assets/js/tickets.js"></script>

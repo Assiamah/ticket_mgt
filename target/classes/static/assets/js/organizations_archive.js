@@ -101,12 +101,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load Organizations
     async function loadArchivedOrgs() {
         try {
+            const orgId = window.CURRENT_USER_ORG_ID || '';
+            const payload = { 
+                org_id: orgId,
+                organization_id: orgId,
+                user_id: '${userInfo.unique_id}' // Optional, but backend injects it
+            };
+
             const response = await fetch(ORG_FETCH_API, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify(payload)
             });
             const text = await response.text();
             let data;
@@ -129,8 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const orgs = Array.isArray(data) ? data : (data.organizations || data.data || []);
             
             // Filter for blocked organizations
-            // allOrgs = orgs.filter(o => o.status === 'blocked' || o.is_active === false || o.is_active === '0');
-            allOrgs = orgs;
+            allOrgs = orgs.filter(o => o.status === 'blocked' || o.is_active === false || o.is_active === '0');
             
             table.clear().rows.add(allOrgs).draw();
             

@@ -361,7 +361,7 @@
 <main class="app-wrapper">
     
     <!-- Modern Header -->
-    <div class="profile-header">
+    <!-- <div class="profile-header">
         <div class="row align-items-center position-relative">
             <div class="col-md-8">
                 <div class="d-flex align-items-center gap-3">
@@ -387,7 +387,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <div class="row g-4">
         <!-- Left Column - Profile Summary -->

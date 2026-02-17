@@ -88,5 +88,15 @@
 
 <script>
     window.CONTEXT_PATH = "${pageContext.request.contextPath}";
+    // Inject Organization ID from session userInfo
+    // Try multiple possible keys as backend does
+    window.CURRENT_USER_ORG_ID = "${userInfo.org_id}";
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.organization_id}";
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.organizationId}";
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.company_id}";
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.business_id}";
+    // Nested organization object check
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.organization.id}";
+    if (!window.CURRENT_USER_ORG_ID || window.CURRENT_USER_ORG_ID === '') window.CURRENT_USER_ORG_ID = "${userInfo.organization.org_id}";
 </script>
-<script src="${pageContext.request.contextPath}/assets/js/organizations_archive.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/organizations_archive.js?v=<%=System.currentTimeMillis()%>"></script>

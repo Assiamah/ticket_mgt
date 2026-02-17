@@ -70,4 +70,32 @@ public class ProductRest {
                     .body("{\"status\": \"error\", \"message\": \"Failed to create product: " + e.getMessage() + "\"}");
         }
     }
+
+    @PostMapping("/delete_product")
+    public ResponseEntity<?> deleteProduct(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
+        try {
+            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            String res = productService.deleteProduct( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(),
+                    obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to delete product: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/get_product_by_id")
+    public ResponseEntity<?> getProductById(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
+        try {
+            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            String res = productService.getProductById( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(),
+                    obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to get product: " + e.getMessage() + "\"}");
+        }
+    }
 }

@@ -115,11 +115,13 @@ const UserAccounts = {
             addModal: new bootstrap.Modal(document.getElementById('addUserModal')),
             viewModal: new bootstrap.Modal(document.getElementById('viewUserModal')),
             deleteModal: new bootstrap.Modal(document.getElementById('deleteConfirmModal')),
+            assignMenusModal: new bootstrap.Modal(document.getElementById('assignMenusModal')),
             
             // Forms
             addForm: document.getElementById('addUserForm'),
             submitBtn: document.getElementById('submitUserForm'),
-            confirmDeleteBtn: document.getElementById('confirmDeleteUser')
+            confirmDeleteBtn: document.getElementById('confirmDeleteUser'),
+            submitAssignMenusBtn: document.getElementById('submitAssignMenus')
         };
     },
 
@@ -131,6 +133,7 @@ const UserAccounts = {
         
         this.dom.submitBtn?.addEventListener('click', () => this.handleFormSubmit());
         this.dom.confirmDeleteBtn?.addEventListener('click', () => this.executeDelete());
+        this.dom.submitAssignMenusBtn?.addEventListener('click', () => this.saveUserMenus());
 
         // Search input debounce
         let debounceTimer;
@@ -241,6 +244,13 @@ const UserAccounts = {
     // Render Table Rows
     renderTable() {
         console.log(`[UserAccounts] Rendering ${this.state.users.length} users into table.`);
+        
+        // Debug and normalize role check (using window global)
+        const currentUserRole = String(window.CURRENT_USER_ROLE || '').toLowerCase();
+        console.log('[UserAccounts] Current User Role:', currentUserRole);
+        const canAssignMenus = currentUserRole.includes('admin') || currentUserRole.includes('owner');
+        console.log('[UserAccounts] Can assign menus?', canAssignMenus);
+
         const tbody = document.querySelector('#users-datatable tbody');
         
         // If tbody doesn't exist but table does, create it
@@ -302,6 +312,8 @@ const UserAccounts = {
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="UserAccounts.viewUser('${user.id || user.user_id}')"><i class="bi bi-eye me-2"></i>View Details</a></li>
                             <li><a class="dropdown-item" href="javascript:void(0)" onclick="UserAccounts.editUser('${user.id || user.user_id}')"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                            ${canAssignMenus ? 
+                            `<li><a class="dropdown-item" href="javascript:void(0)" onclick="UserAccounts.assignMenus('${user.id || user.user_id}', '${user.username}')"><i class="bi bi-list-check me-2"></i>Assign Menus</a></li>` : ''}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="UserAccounts.deleteUser('${user.id || user.user_id}', '${user.username}')"><i class="bi bi-trash me-2"></i>Delete</a></li>
                         </ul>
@@ -464,6 +476,188 @@ const UserAccounts = {
         } catch (error) {
             console.error('[UserAccounts] Error loading user for edit:', error);
             this.showNotification('Failed to load user details', 'error');
+        }
+    },
+
+    // Assign Menus
+    async assignMenus(userId, username) {
+        console.log('[UserAccounts] Assigning menus for:', userId);
+        
+        document.getElementById('assign_user_id').value = userId;
+        document.getElementById('assign_user_name').textContent = `Assigning to: ${username}`;
+        document.getElementById('menusList').innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2">Loading menus...</span></div>';
+        
+        this.dom.assignMenusModal.show();
+
+        try {
+            // 1. Fetch all available menus
+            const allMenusResponse = await fetch(`${window.CONTEXT_PATH}/api/users/menus`);
+            const allMenusResult = await allMenusResponse.json();
+            
+            // Handle different response structures
+            let allMenus = [];
+            if (Array.isArray(allMenusResult)) {
+                allMenus = allMenusResult;
+            } else if (allMenusResult.data && Array.isArray(allMenusResult.data)) {
+                allMenus = allMenusResult.data;
+            } else if (allMenusResult.menus && Array.isArray(allMenusResult.menus)) {
+                allMenus = allMenusResult.menus;
+            } else {
+                // Fallback: try to parse if it's a string
+                 try {
+                    const parsed = typeof allMenusResult === 'string' ? JSON.parse(allMenusResult) : allMenusResult;
+                    if(Array.isArray(parsed)) allMenus = parsed;
+                    else if(parsed.data) allMenus = parsed.data;
+                } catch(e) { console.warn('Failed to parse menu list', e); }
+            }
+
+            // 2. Fetch user's assigned menus
+            const userMenusResponse = await fetch(`${window.CONTEXT_PATH}/api/users/${userId}/menus`);
+            const userMenusResult = await userMenusResponse.json();
+            
+            let assignedMenuIds = [];
+             // Handle different response structures for user menus
+            if (Array.isArray(userMenusResult)) {
+                assignedMenuIds = userMenusResult.map(m => m.id || m.menu_id);
+            } else if (userMenusResult.data) {
+                assignedMenuIds = (Array.isArray(userMenusResult.data) ? userMenusResult.data : []).map(m => m.id || m.menu_id);
+            } else if (userMenusResult.menu_ids) {
+                assignedMenuIds = userMenusResult.menu_ids;
+            } else {
+                 // Try parsing
+                 try {
+                     const parsed = typeof userMenusResult === 'string' ? JSON.parse(userMenusResult) : userMenusResult;
+                     if(Array.isArray(parsed)) assignedMenuIds = parsed.map(m => m.id || m.menu_id);
+                     else if(parsed.data) assignedMenuIds = (Array.isArray(parsed.data) ? parsed.data : []).map(m => m.id || m.menu_id);
+                 } catch(e) {}
+            }
+
+            this.renderMenuSelection(allMenus, assignedMenuIds);
+
+        } catch (error) {
+            console.error('[UserAccounts] Error loading menus:', error);
+            document.getElementById('menusList').innerHTML = `<div class="alert alert-danger">Failed to load menus: ${error.message}</div>`;
+        }
+    },
+
+    renderMenuSelection(allMenus, assignedIds) {
+        const container = document.getElementById('menusList');
+        container.innerHTML = '';
+        
+        if (!allMenus || allMenus.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted">No menus available</div>';
+            return;
+        }
+
+        // Build simple tree or list
+        // Assuming flat list with parent_id or parent_menu_id
+        
+        // Group by parent
+        const roots = [];
+        const children = {};
+        
+        allMenus.forEach(menu => {
+            const pid = menu.parent_id || menu.parent_menu_id;
+            if (!pid || pid === '0' || pid === 0) {
+                roots.push(menu);
+            } else {
+                if (!children[pid]) children[pid] = [];
+                children[pid].push(menu);
+            }
+        });
+        
+        // Sort by position or name if available
+        roots.sort((a, b) => (a.position || 0) - (b.position || 0) || (a.name || '').localeCompare(b.name || ''));
+
+        const createCheckbox = (menu, isChild = false) => {
+            const id = menu.id || menu.menu_id;
+            const isChecked = assignedIds.includes(id) || assignedIds.includes(String(id)) || assignedIds.includes(Number(id));
+            
+            return `
+                <div class="form-check ${isChild ? 'ms-4' : 'mb-2 fw-bold'}">
+                    <input class="form-check-input menu-checkbox" type="checkbox" 
+                           value="${id}" id="menu_${id}" 
+                           ${isChecked ? 'checked' : ''}
+                           data-parent="${menu.parent_id || menu.parent_menu_id || ''}">
+                    <label class="form-check-label" for="menu_${id}">
+                        ${menu.name || menu.title || 'Unknown Menu'} 
+                        ${menu.icon ? `<i class="${menu.icon} ms-1 text-muted"></i>` : ''}
+                    </label>
+                </div>
+            `;
+        };
+
+        let html = '';
+        roots.forEach(root => {
+            const rootId = root.id || root.menu_id;
+            html += createCheckbox(root);
+            
+            if (children[rootId]) {
+                children[rootId].forEach(child => {
+                    html += createCheckbox(child, true);
+                });
+            }
+            html += '<hr class="my-2 opacity-25">';
+        });
+        
+        container.innerHTML = html;
+        
+        // Add event listeners for parent/child selection logic
+        container.querySelectorAll('.menu-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const id = e.target.value;
+                const isChecked = e.target.checked;
+                
+                // If parent is checked/unchecked, check/uncheck all children
+                if (!e.target.dataset.parent) {
+                    // It's a parent
+                    const childCheckboxes = container.querySelectorAll(`input[data-parent="${id}"]`);
+                    childCheckboxes.forEach(child => child.checked = isChecked);
+                } else {
+                    // It's a child. If checked, ensure parent is checked
+                    if (isChecked) {
+                        const parentId = e.target.dataset.parent;
+                        const parentCb = container.querySelector(`#menu_${parentId}`);
+                        if (parentCb) parentCb.checked = true;
+                    }
+                }
+            });
+        });
+    },
+
+    async saveUserMenus() {
+        const userId = document.getElementById('assign_user_id').value;
+        if (!userId) return;
+
+        const checkboxes = document.querySelectorAll('.menu-checkbox:checked');
+        const menuIds = Array.from(checkboxes).map(cb => cb.value);
+
+        const btn = this.dom.submitAssignMenusBtn;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        try {
+            const response = await fetch(`${window.CONTEXT_PATH}/api/users/${userId}/menus`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ menu_ids: menuIds })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success' || result.success) {
+                this.showNotification('Menu permissions updated successfully', 'success');
+                this.dom.assignMenusModal.hide();
+            } else {
+                this.showNotification(result.message || 'Failed to save permissions', 'error');
+            }
+        } catch (error) {
+            console.error('[UserAccounts] Error saving menus:', error);
+            this.showNotification('Error saving menu permissions', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     },
 
