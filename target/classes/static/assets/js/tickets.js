@@ -581,6 +581,114 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+
+    // --- Edit Ticket Operations ---
+    async function openEditModal(taskId) {
+        if (!taskId) return;
+        
+        try {
+            // Fetch ticket details
+            const p = new URLSearchParams();
+            p.append('task_id', taskId);
+            
+            const r = await fetch(TICKET_API + '/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: p.toString()
+            });
+            const t = await r.text();
+            const d = safeParseJson(t) || {};
+            const ticket = d.data || d;
+            
+            if (!ticket || (!ticket.task_id && !ticket.id)) {
+                showNotification('Failed to load ticket details', 'error');
+                return;
+            }
+
+            // Populate form fields
+            const idInput = document.getElementById('edit_task_id');
+            const subjInput = document.getElementById('edit_task_subject');
+            const prioSelect = document.getElementById('edit_task_priority');
+            const typeInput = document.getElementById('edit_task_type');
+            const statusSelect = document.getElementById('edit_task_status');
+            const descInput = document.getElementById('edit_task_description');
+            const remarksInput = document.getElementById('edit_task_remarks');
+
+            if (idInput) idInput.value = ticket.task_id || ticket.ticket_id || '';
+            if (subjInput) subjInput.value = ticket.task_subject || ticket.title || '';
+            
+            // Wait for options to load if empty
+            if (prioSelect && prioSelect.options.length <= 1) {
+                await loadOptions('/priorities/list', 'edit_task_priority', 'Select Priority', 'priority_id', 'name');
+            }
+            if (prioSelect) prioSelect.value = ticket.priority_id || '';
+
+            if (typeInput) typeInput.value = ticket.task_type || '';
+            
+            if (statusSelect && statusSelect.options.length <= 1) {
+                await loadOptions('/statuses/list', 'edit_task_status', 'Select Status', 'status_id', 'name');
+            }
+            if (statusSelect) statusSelect.value = ticket.status_id || '';
+
+            if (descInput) descInput.value = ticket.task_description || ticket.description || '';
+            if (remarksInput) remarksInput.value = ticket.remarks || '';
+
+            // Show modal
+            const modalEl = document.getElementById('editTicketModal');
+            if (modalEl) {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        } catch (e) {
+            console.error('Error opening edit modal', e);
+            showNotification('Error loading ticket for editing', 'error');
+        }
+    }
+
+    async function updateTicket() {
+        const taskId = document.getElementById('edit_task_id').value;
+        if (!taskId) return;
+
+        const p = new URLSearchParams();
+        p.append('task_id', taskId);
+        p.append('task_subject', document.getElementById('edit_task_subject').value);
+        p.append('task_priority', document.getElementById('edit_task_priority').value);
+        p.append('task_type', document.getElementById('edit_task_type').value);
+        p.append('task_status', document.getElementById('edit_task_status').value);
+        p.append('task_description', document.getElementById('edit_task_description').value);
+        p.append('task_remarks', document.getElementById('edit_task_remarks').value);
+
+        if (!p.get('task_subject') || !p.get('task_priority') || !p.get('task_type') || !p.get('task_description')) {
+            showNotification('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        try {
+            const r = await fetch(TICKET_API + '/update_tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: p.toString()
+            });
+            const t = await r.text();
+            const d = safeParseJson(t) || {};
+
+            if ((d && (d.success === true || d.status === 'Success')) || r.ok) {
+                showNotification('Ticket updated successfully', 'success');
+                
+                const modalEl = document.getElementById('editTicketModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                
+                loadTickets(); // Refresh table
+            } else {
+                showNotification((d.message || d.error || 'Failed to update ticket'), 'error');
+            }
+        } catch (e) {
+            console.error('Error updating ticket', e);
+            showNotification('Error updating ticket', 'error');
+        }
+    }
+
     // --- Select/Option Loading ---
     async function loadOptions(endpoint, elementId, placeholder, idField, nameField) {
         try {
@@ -683,11 +791,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const editBtn = e.target.closest('.btn-edit');
         if (editBtn) {
-            // Implement edit logic or open edit modal
-            console.log('Edit ticket:', editBtn.dataset.taskId);
+            openEditModal(editBtn.dataset.taskId);
             return;
         }
     });
+
+    // --- Edit Modal Event Listeners ---
+    // Listener removed to prevent race condition with openEditModal
+
+
+    const updateBtn = document.getElementById('updateTicketBtn');
+    if (updateBtn) updateBtn.addEventListener('click', updateTicket);
 
     // --- Filter Event Listeners ---
     const applyFiltersBtn = document.getElementById('applyFiltersBtn');

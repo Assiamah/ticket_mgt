@@ -1516,6 +1516,7 @@ public class TicketRest {
             String task_priority = request.getParameter("task_priority");
             String task_remarks = request.getParameter("task_remarks");
             String status_id = request.getParameter("status_id");
+            String task_status = request.getParameter("task_status");
 
             // obj.put("academic_year", academic_year);
             obj.put("task_subject", task_subject);
@@ -1524,8 +1525,14 @@ public class TicketRest {
             obj.put("task_description", task_description);
             obj.put("task_priority", task_priority);
             obj.put("task_remarks", task_remarks);
-            if (status_id != null && !status_id.isEmpty())
+
+            if (status_id != null && !status_id.isEmpty()) {
                 obj.put("status_id", status_id);
+            } else if (task_status != null && !task_status.isEmpty()) {
+                obj.put("status_id", task_status);
+                // Also put task_status just in case the downstream service uses that key
+                obj.put("task_status", task_status);
+            }
 
             System.out.println("JSON Request: " + obj.toString());
 
