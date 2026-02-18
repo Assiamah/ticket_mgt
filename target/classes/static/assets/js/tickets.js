@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             sel.innerHTML = '<option value="">Select Agent</option>' + 
                 (Array.isArray(users) ? users : []).map(u => {
-                    const id = u.id || u.user_id || u.unique_id;
+                    const id = u.user_uuid || u.id || u.user_id || u.unique_id;
                     const name = u.display_name || u.name || u.email || 'Unknown Agent';
                     return `<option value="${id}">${name}</option>`;
                 }).join('');

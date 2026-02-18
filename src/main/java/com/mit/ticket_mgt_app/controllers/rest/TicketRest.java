@@ -1577,6 +1577,10 @@ public class TicketRest {
             obj.put("task_id", task_id);
             obj.put("user_to_assign_id", user_to_assign_id);
 
+            // Map to user_uuid as expected by the backend
+            obj.put("user_uuid", user_to_assign_id);
+            obj.put("p_user_uuid", user_to_assign_id); // Fallback if p_ convention is used
+
             System.out.println("JSON tt Request: " + obj.toString());
 
             // Call web service
