@@ -488,7 +488,7 @@
 </main>
 <script>
     const TICKET_API_BASE = "${pageContext.request.contextPath}/api/tickets";
-    const ORG_API = "${pageContext.request.contextPath}/api/organizations";
+    const ORG_API = "${pageContext.request.contextPath}/v1/organization_service/get_all_organizations";
     const CURRENT_USER_ID = "${userInfo.id}";
 </script>
 <script src="${pageContext.request.contextPath}/assets/js/tickets.js"></script>

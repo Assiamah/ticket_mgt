@@ -12,6 +12,7 @@ import com.mit.ticket_mgt_app.config.WebServiceURLConfig;
 import com.mit.ticket_mgt_app.services.ProductService;
 
 import jakarta.servlet.http.HttpSession;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/api/products")
@@ -29,13 +30,19 @@ public class ProductRest {
     }
 
     @GetMapping("")
-    public ResponseEntity<?> getAllProducts(HttpSession session) {
+    public ResponseEntity<?> getAllProducts(@RequestParam(required = false) String org_id, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
-            String res = productService.getAllProducts( wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), "{}");
+            org.codehaus.jettison.json.JSONObject payload = new org.codehaus.jettison.json.JSONObject();
+            if (org_id != null && !org_id.isEmpty()) {
+                payload.put("org_id", org_id);
+            }
+
+            String res = productService.getAllProducts(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), payload.toString());
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             e.printStackTrace();
@@ -47,7 +54,8 @@ public class ProductRest {
     @PostMapping("")
     public ResponseEntity<?> addProduct(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             @SuppressWarnings("unchecked")
@@ -61,7 +69,8 @@ public class ProductRest {
                     payload.put("org_id", orgId.toString());
             }
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            String res = productService.addProduct( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(),
+            String res = productService.addProduct(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
             return ResponseEntity.ok(res);
         } catch (Exception e) {
@@ -75,7 +84,8 @@ public class ProductRest {
     public ResponseEntity<?> deleteProduct(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            String res = productService.deleteProduct( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(),
+            String res = productService.deleteProduct(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
             return ResponseEntity.ok(res);
         } catch (Exception e) {
@@ -89,7 +99,8 @@ public class ProductRest {
     public ResponseEntity<?> getProductById(@RequestBody java.util.Map<String, Object> payload, HttpSession session) {
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            String res = productService.getProductById( wsURLConfig.getWeb_service_url_ser(), wsURLConfig.getWeb_service_url_ser_api_key(),
+            String res = productService.getProductById(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
                     obj.toString());
             return ResponseEntity.ok(res);
         } catch (Exception e) {

@@ -35,19 +35,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             { data: 'org_code' },
-            { data: 'email', defaultContent: 'N/A' },
+            { data: 'org_email', defaultContent: 'N/A' },
             { 
                 data: null, 
                 render: function(data) {
-                    return [data.city, data.country].filter(Boolean).join(', ') || 'N/A';
+                    return [data.org_city, data.org_country].filter(Boolean).join(', ') || 'N/A';
                 }
             },
             { 
-                data: 'status',
+                data: 'is_active',
                 render: function(data) {
-                    const status = data || 'inactive';
-                    const badgeClass = status === 'active' ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger';
-                    return `<span class="badge ${badgeClass}">${status.toUpperCase()}</span>`;
+                    const isActive = data === true || data === 'true' || data === 1;
+                    const status = isActive ? 'ACTIVE' : 'INACTIVE';
+                    const badgeClass = isActive ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger';
+                    return `<span class="badge ${badgeClass}">${status}</span>`;
                 }
             },
             { 
@@ -57,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             { 
-                data: 'created_date',
+                data: 'created_at',
                 render: function(data) {
                     return data ? new Date(data).toLocaleDateString() : 'N/A';
                 }
@@ -175,9 +176,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const orgs = Array.isArray(data) ? data : (data.organizations || data.data || []);
             
-            // Filter out blocked ones if needed, or show all. Usually 'manage' shows active ones.
-            // The archive page shows blocked ones. Let's show non-blocked here.
-            allOrgs = orgs.filter(o => o.status !== 'blocked');
+            // Show all organizations since Archive page now shows Tasks
+            allOrgs = orgs;
             
             table.clear().rows.add(allOrgs).draw();
             
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const countEl = document.getElementById('showingCount');
             const totalEl = document.getElementById('totalCount');
             if (countEl) countEl.textContent = allOrgs.length;
-            if (totalEl) totalEl.textContent = orgs.length; // Total includes blocked? Or just loaded count
+            if (totalEl) totalEl.textContent = orgs.length;
             
         } catch (error) {
             console.error('Error loading organizations:', error);
@@ -402,21 +402,22 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('view_org_code').textContent = org.org_code;
             
             // Populate meta details
-            document.getElementById('view_meta_status').textContent = org.status;
-            document.getElementById('view_meta_status').className = `summary-value badge ${org.status === 'active' ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'}`;
+            const isActive = org.is_active === true || org.is_active === 'true' || org.is_active === 1;
+            document.getElementById('view_meta_status').textContent = isActive ? 'ACTIVE' : 'INACTIVE';
+            document.getElementById('view_meta_status').className = `summary-value badge ${isActive ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'}`;
             
             document.getElementById('view_meta_subscription').textContent = org.subscription_type || 'N/A';
-            document.getElementById('view_meta_system_owner').textContent = org.is_system_owner ? 'Yes' : 'No';
-            document.getElementById('view_meta_email').textContent = org.email || 'N/A';
-            document.getElementById('view_meta_phone').textContent = org.phone || 'N/A';
-            document.getElementById('view_meta_country').textContent = org.country || 'N/A';
-            document.getElementById('view_meta_created').textContent = org.created_date ? new Date(org.created_date).toLocaleDateString() : 'N/A';
+            document.getElementById('view_meta_system_owner').textContent = (org.is_system_owner === true || org.is_system_owner === 'true') ? 'Yes' : 'No';
+            document.getElementById('view_meta_email').textContent = org.org_email || 'N/A';
+            document.getElementById('view_meta_phone').textContent = org.org_phone || 'N/A';
+            document.getElementById('view_meta_country').textContent = org.org_country || 'N/A';
+            document.getElementById('view_meta_created').textContent = org.created_at ? new Date(org.created_at).toLocaleDateString() : 'N/A';
             
             // Render details content
             const detailsHtml = `
                 <div class="row mb-3">
-                    <div class="col-6"><small class="text-muted">Address</small><div class="fw-medium">${org.address || 'N/A'}</div></div>
-                    <div class="col-6"><small class="text-muted">City</small><div class="fw-medium">${org.city || 'N/A'}</div></div>
+                    <div class="col-6"><small class="text-muted">Address</small><div class="fw-medium">${org.org_address || 'N/A'}</div></div>
+                    <div class="col-6"><small class="text-muted">City</small><div class="fw-medium">${org.org_city || 'N/A'}</div></div>
                 </div>
             `;
             document.getElementById('orgDetailsContent').innerHTML = detailsHtml;

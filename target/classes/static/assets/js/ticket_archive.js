@@ -140,15 +140,76 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Load Products
+    async function loadProducts() {
+        try {
+            const orgId = window.userInfo ? (window.userInfo.organization_uuid || window.userInfo.org_id) : null;
+            if (!orgId) return;
+
+            const response = await fetch(`${window.CONTEXT_PATH}/api/products?org_id=${orgId}`);
+            if (response.ok) {
+                const text = await response.text();
+                let data = JSON.parse(text);
+                const products = Array.isArray(data) ? data : (data.products || data.data || []);
+                
+                const productSelect = document.getElementById('filter_product');
+                if (productSelect) {
+                    let html = '<option value="">All Products</option>';
+                    products.forEach(p => {
+                        html += `<option value="${p.product_id || p.id}">${p.product_name} (${p.product_code})</option>`;
+                    });
+                    productSelect.innerHTML = html;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+        }
+    }
+
     // Load Archived Tickets
     async function loadArchivedTickets() {
         try {
+            // Get user info from global context
+            const userId = window.userInfo ? (window.userInfo.unique_id || window.userInfo.user_uuid || window.userInfo.id) : null;
+            const orgId = window.userInfo ? (window.userInfo.organization_uuid || window.userInfo.org_id) : null;
+            
+            // Get filter values
+            const searchInput = document.getElementById('search_archive');
+            const fromDateInput = document.getElementById('filter_from');
+            const toDateInput = document.getElementById('filter_to');
+            const productInput = document.getElementById('filter_product');
+            
+            const searchText = searchInput ? searchInput.value : '';
+            const productId = productInput ? productInput.value : '';
+            
+            const currentYear = new Date().getFullYear();
+            let fromDate = fromDateInput && fromDateInput.value ? fromDateInput.value : `${currentYear}-01-01`;
+            let toDate = toDateInput && toDateInput.value ? toDateInput.value : `${currentYear}-12-31`;
+            
+            // Append time if missing
+            if (fromDate.length === 10) fromDate += ' 00:00:00';
+            if (toDate.length === 10) toDate += ' 23:59:59';
+
+            const payload = {
+                user_id: userId,
+                organization_id: orgId,
+                product_id: productId,
+                from_date: fromDate,
+                to_date: toDate,
+                search_text: searchText,
+                page: 1,
+                limit: 50
+            };
+
+            console.log('Archive API URL:', ARCHIVE_API);
+            console.log('Archive Payload:', payload);
+
             const response = await fetch(ARCHIVE_API, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify(payload)
             });
             
             const text = await response.text();
@@ -204,7 +265,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (criticalEl) criticalEl.textContent = critical;
     }
 
+    // Event Listeners for Filters
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', loadArchivedTickets);
+    }
+
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            if(document.getElementById('search_archive')) document.getElementById('search_archive').value = '';
+            if(document.getElementById('filter_from')) document.getElementById('filter_from').value = '';
+            if(document.getElementById('filter_to')) document.getElementById('filter_to').value = '';
+            if(document.getElementById('filter_priority')) document.getElementById('filter_priority').value = '';
+            if(document.getElementById('filter_product')) document.getElementById('filter_product').value = '';
+            loadArchivedTickets();
+        });
+    }
+
     // Initial load
+    loadProducts();
     loadArchivedTickets();
 
     // Refresh button

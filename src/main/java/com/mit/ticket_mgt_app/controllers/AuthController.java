@@ -312,7 +312,9 @@ public class AuthController {
             // Store full user info in session
             try {
                 ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> userInfo = mapper.readValue(resData.toString(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> userInfo = mapper.readValue(resData.toString(),
+                        new TypeReference<Map<String, Object>>() {
+                        });
                 session.setAttribute("userInfo", userInfo);
                 System.out.println("DEBUG: AuthController populated userInfo in session: " + userInfo);
             } catch (Exception e) {
@@ -399,6 +401,26 @@ public class AuthController {
                         child.setId(Math.abs(("Manage Tickets" + "/tickets").hashCode()));
                         child.setTitle("Manage Tickets");
                         child.setRoute("/tickets");
+                        child.setParentId(ticketsParent.getId());
+                        child.setPosition(ticketChildren.size() + 1);
+                        ticketChildren.add(child);
+                    }
+                }
+                // Org Archive
+                {
+                    boolean exists = false;
+                    for (Menu c : ticketChildren) {
+                        if ("Org Archive".equalsIgnoreCase(c.getTitle())
+                                || "/tickets/org_archive".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        Menu child = new Menu();
+                        child.setId(Math.abs(("Org Archive" + "/tickets/org_archive").hashCode()));
+                        child.setTitle("Org Archive");
+                        child.setRoute("/tickets/org_archive");
                         child.setParentId(ticketsParent.getId());
                         child.setPosition(ticketChildren.size() + 1);
                         ticketChildren.add(child);
@@ -625,26 +647,32 @@ public class AuthController {
                     menuTree.add(orgParent);
                 }
                 java.util.List<Menu> orgChildren = orgParent.getChildren();
-                // Org Archive
+                // Organization Archive
                 {
-                    boolean exists = false;
+                    Menu existing = null;
                     for (Menu c : orgChildren) {
-                        if ("Org Archive".equalsIgnoreCase(c.getTitle())
-                                || "/organizations/archive".equalsIgnoreCase(String.valueOf(c.getRoute()))) {
-                            exists = true;
+                        if ("Organization Archive".equalsIgnoreCase(c.getTitle())) {
+                            existing = c;
                             break;
                         }
                     }
-                    if (!exists) {
+
+                    if (existing != null) {
+                        // Ensure route is correct
+                        if (!"/tickets/org_archive".equals(existing.getRoute())) {
+                            existing.setRoute("/tickets/org_archive");
+                        }
+                    } else {
                         Menu child = new Menu();
-                        child.setId(Math.abs(("Org Archive" + "/organizations/archive").hashCode()));
-                        child.setTitle("Org Archive");
-                        child.setRoute("/organizations/archive");
+                        child.setId(Math.abs(("Organization Archive" + "/tickets/org_archive").hashCode()));
+                        child.setTitle("Organization Archive");
+                        child.setRoute("/tickets/org_archive");
                         child.setParentId(orgParent.getId());
                         child.setPosition(orgChildren.size() + 1);
                         orgChildren.add(child);
                     }
                 }
+
             } catch (Exception ignore) {
             }
 

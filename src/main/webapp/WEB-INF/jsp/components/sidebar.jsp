@@ -679,13 +679,6 @@
                         </a>
                         <ul class="pe-slide-menu collapse ${currentRoute.startsWith('/organizations') ? 'show' : ''}" id="collapseOrgManual">
                             <li class="pe-slide-item">
-                                <a href="${pageContext.request.contextPath}/organizations/archive"
-                                   class="pe-nav-link ${currentRoute eq '/organizations/archive' ? 'active' : ''}"
-                                   data-title="Organization Archive">
-                                    Organization Archive
-                                </a>
-                            </li>
-                            <li class="pe-slide-item">
                                 <a href="${pageContext.request.contextPath}/organizations/add"
                                    class="pe-nav-link ${currentRoute eq '/organizations/add' ? 'active' : ''}"
                                    data-title="Add Organization">

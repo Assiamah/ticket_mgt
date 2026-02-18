@@ -189,75 +189,63 @@ public class OrganizationRest {
     @PostMapping("/get_org_archived_tasks")
     public ResponseEntity<?> getOrgArchivedTasks(@RequestBody Map<String, Object> payload, HttpSession session) {
         try {
-            // Add user info to payload if available
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
-                System.out.println("DEBUG: OrganizationRest getOrgArchivedTasks userInfo: " + userInfo);
-                if (userInfo != null) {
-                    // Extract User ID
-                    if (!payload.containsKey("user_id")) {
-                        Object uniqueId = userInfo.get("unique_id");
-                        Object userId = userInfo.get("user_id");
-                        Object id = userInfo.get("id");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+            if (userInfo != null) {
+                // Extract User ID
+                if (!payload.containsKey("user_id")) {
+                    Object uniqueId = userInfo.get("unique_id");
+                    Object userId = userInfo.get("user_id");
+                    Object id = userInfo.get("id");
 
-                        // Prefer UUID (unique_id)
-                        if (uniqueId != null && isValidUUID(uniqueId.toString())) {
-                            payload.put("user_id", uniqueId.toString());
-                        } else if (userId != null && isValidUUID(userId.toString())) {
-                            payload.put("user_id", userId.toString());
-                        } else if (id != null && isValidUUID(id.toString())) {
-                            payload.put("user_id", id.toString());
-                        } else {
-                            // If no valid UUID found, do NOT send numeric ID to avoid DB type mismatch
-                            System.out.println(
-                                    "DEBUG: No valid UUID found for user_id. Skipping injection to avoid type mismatch. Available IDs: unique_id="
-                                            + uniqueId + ", id=" + id);
-                        }
-                    }
-
-                    // Extract Organization ID
-                    if (!payload.containsKey("org_id")) {
-                        Object orgId = userInfo.get("org_id");
-                        if (orgId == null)
-                            orgId = userInfo.get("organization_id");
-                        if (orgId == null)
-                            orgId = userInfo.get("organizationId");
-                        if (orgId == null)
-                            orgId = userInfo.get("company_id");
-                        if (orgId == null)
-                            orgId = userInfo.get("business_id");
-
-                        if (orgId == null) {
-                            // Check for nested organization object
-                            Object orgObj = userInfo.get("organization");
-                            if (orgObj instanceof Map) {
-                                Map<?, ?> orgMap = (Map<?, ?>) orgObj;
-                                if (orgMap.get("id") != null)
-                                    orgId = orgMap.get("id");
-                                else if (orgMap.get("org_id") != null)
-                                    orgId = orgMap.get("org_id");
-                            }
-                        }
-
-                        if (orgId != null) {
-                            payload.put("org_id", orgId);
-                            // Also put organization_id for SQL compatibility
-                            if (!payload.containsKey("organization_id")) {
-                                payload.put("organization_id", orgId);
-                            }
-                        } else {
-                            System.out.println("DEBUG: Organization ID not found in session for getOrgArchivedTasks.");
-                        }
-                    } else {
-                        // If payload has org_id, ensure organization_id is also present
-                        if (!payload.containsKey("organization_id") && payload.get("org_id") != null) {
-                            payload.put("organization_id", payload.get("org_id"));
-                        }
+                    if (uniqueId != null && isValidUUID(uniqueId.toString())) {
+                        payload.put("user_id", uniqueId.toString());
+                    } else if (userId != null && isValidUUID(userId.toString())) {
+                        payload.put("user_id", userId.toString());
+                    } else if (id != null && isValidUUID(id.toString())) {
+                        payload.put("user_id", id.toString());
                     }
                 }
-            } catch (Exception ignore) {
+
+                // Extract Organization ID
+                // Map session org_id to p_org_id and organization_id if not present
+                Object orgId = null;
+                if (!payload.containsKey("p_org_id") || !payload.containsKey("organization_id")) {
+                    orgId = userInfo.get("org_id");
+                    if (orgId == null)
+                        orgId = userInfo.get("organization_id");
+                    if (orgId == null)
+                        orgId = userInfo.get("organizationId");
+                    if (orgId == null)
+                        orgId = userInfo.get("company_id");
+                    if (orgId == null)
+                        orgId = userInfo.get("business_id");
+
+                    if (orgId == null) {
+                        Object orgObj = userInfo.get("organization");
+                        if (orgObj instanceof Map) {
+                            Map<?, ?> orgMap = (Map<?, ?>) orgObj;
+                            if (orgMap.get("id") != null)
+                                orgId = orgMap.get("id");
+                            else if (orgMap.get("org_id") != null)
+                                orgId = orgMap.get("org_id");
+                        }
+                    }
+
+                    if (orgId != null) {
+                        if (!payload.containsKey("p_org_id"))
+                            payload.put("p_org_id", orgId);
+                        if (!payload.containsKey("organization_id"))
+                            payload.put("organization_id", orgId);
+                    }
+                }
             }
+
+            // Ensure payload has defaults if missing
+            if (!payload.containsKey("p_limit"))
+                payload.put("p_limit", 50);
+            if (!payload.containsKey("p_offset"))
+                payload.put("p_offset", 0);
 
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
             webServiceResponse = organizationService.getOrgArchivedTasks(wsURLConfig.getWeb_service_url_ser(),

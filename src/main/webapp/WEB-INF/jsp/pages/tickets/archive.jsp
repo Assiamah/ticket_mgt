@@ -111,6 +111,12 @@
             </div>
           </div>
           <div class="col-xl-2 col-lg-3">
+            <label class="form-label">Product</label>
+            <select id="filter_product" class="form-select">
+              <option value="">All Products</option>
+            </select>
+          </div>
+          <div class="col-xl-2 col-lg-3">
             <label class="form-label">Priority</label>
             <select id="filter_priority" class="form-select">
               <option value="">All Priorities</option>

@@ -364,21 +364,10 @@ public class TicketRest {
         // \"SESSION_INVALID.\"}");
         // }
         try {
-            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject();
-            try {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session
-                        .getAttribute("userInfo");
-                if (userInfo != null && userInfo.get("id") != null) {
-                    obj.put("user_id", Integer.parseInt(userInfo.get("id").toString()));
-                }
-            } catch (Exception ignore) {
-            }
-
             webServiceResponse = ticketService.getUsersForAssignment(
                     wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(),
-                    obj.toString());
+                    "{}");
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             logger.severe("Error fetching users for assignment: " + e.getMessage());

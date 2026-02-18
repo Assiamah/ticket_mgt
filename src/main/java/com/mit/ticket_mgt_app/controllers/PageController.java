@@ -275,11 +275,11 @@ public class PageController {
         return "layouts/app";
     }
 
-    @GetMapping("/organizations/archive")
-    public String organizationsArchive(Model model, HttpSession session) {
-        model.addAttribute("content", "../pages/organizations/archive.jsp");
+    @GetMapping("/tickets/org_archive")
+    public String ticketsOrgArchive(Model model, HttpSession session) {
+        model.addAttribute("content", "../pages/tickets/org_archive.jsp");
         model.addAttribute("page_name", "Organization Archive");
-        model.addAttribute("currentRoute", "/organizations/archive");
+        model.addAttribute("currentRoute", "/tickets/org_archive");
         return "layouts/app";
     }
 

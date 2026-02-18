@@ -245,11 +245,17 @@ public class TicketService {
             String base = web_service_url == null ? "" : web_service_url;
             if (!base.endsWith("/"))
                 base += "/";
-            WebResource webResource = client.resource(base + "v1/ticket_service/get_users_for_assignment");
+            // Use tickets_mgt_services endpoint
+            WebResource webResource = client.resource(base + "tickets_mgt_services/get_users_for_assignment");
+
+            // Construct payload for get_users_for_assignment
+            JSONObject payload = new JSONObject();
+
+            // Payload is no longer required
 
             ClientResponse response_ws = webResource.type("application/json")
                     .header("x-api-key", web_service_api_key)
-                    .post(ClientResponse.class, json_request);
+                    .post(ClientResponse.class, payload.toString());
             int status = response_ws.getStatus();
             String body = null;
             try {
@@ -257,7 +263,8 @@ public class TicketService {
             } catch (Exception ignore) {
             }
             if (status != 200) {
-                throw new RuntimeException("Failed : HTTP error code : " + status);
+                throw new RuntimeException(
+                        "Failed : HTTP error code : " + status + ". Body: " + (body != null ? body : "No body"));
             }
             return body == null ? "" : body;
         } catch (Exception e) {

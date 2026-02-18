@@ -5,10 +5,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     // These should be defined in the JSP before this script is loaded
     const TICKET_API = typeof TICKET_API_BASE !== 'undefined' ? TICKET_API_BASE : (window.CONTEXT_PATH || '') + '/api/tickets';
-    const ORGANIZATION_API = typeof ORG_API !== 'undefined' ? ORG_API : (window.CONTEXT_PATH || '') + '/api/organizations';
+    const ORGANIZATION_API = typeof ORG_API !== 'undefined' ? ORG_API : (window.CONTEXT_PATH || '') + '/v1/organization_service/get_all_organizations';
+    const PRODUCT_API = (window.CONTEXT_PATH || '') + '/api/products';
     
     let IS_SYSTEM_OWNER = true;
     let allRows = [];
+    let loadedOrganizations = [];
 
     // --- Helpers ---
     function safeParseJson(text) { 
@@ -124,9 +126,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     } 
                 },
                 { 
-                    data: null, 
-                    render: function(_, __, row) { 
-                        return formatDate(row.created_date || row.created_at); 
+                    data: 'created_date', 
+                    render: function(data, type, row) { 
+                        const d = data || row.created_at;
+                        if (type === 'display' || type === 'filter') {
+                            return formatDate(d);
+                        }
+                        return d ? new Date(d).getTime() : 0;
                     } 
                 },
                 { 
@@ -212,21 +218,75 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentUserId = typeof CURRENT_USER_ID !== 'undefined' ? CURRENT_USER_ID : null;
         const pathname = window.location.pathname;
 
+        // 1. Context Filtering (My Tasks / Assigned Jobs)
         if (currentUserId) {
             if (pathname.includes('my_tasks')) {
-                // My Tasks: Created by me OR Assigned to me
                 filteredRows = allRows.filter(r => 
                     String(r.created_by) === String(currentUserId) || 
                     String(r.assigned_to) === String(currentUserId) ||
                     String(r.assigned_to_id) === String(currentUserId)
                 );
             } else if (pathname.includes('assigned_jobs')) {
-                // Assigned Jobs: ONLY Assigned to me
                 filteredRows = allRows.filter(r => 
                     String(r.assigned_to) === String(currentUserId) ||
                     String(r.assigned_to_id) === String(currentUserId)
                 );
             }
+        }
+
+        // 2. User Filters
+        const searchVal = (document.getElementById('tickets_search') || {}).value || '';
+        const statusVal = (document.getElementById('filter_status') || {}).value || '';
+        const priorityVal = (document.getElementById('filter_priority') || {}).value || '';
+        const dateStart = (document.getElementById('filter_start') || {}).value;
+        const dateEnd = (document.getElementById('filter_end') || {}).value;
+        const unassignedOnly = (document.getElementById('filter_unassigned') || {}).checked;
+
+        if (searchVal || statusVal || priorityVal || dateStart || dateEnd || unassignedOnly) {
+            const lowerSearch = searchVal.toLowerCase();
+            const startTs = dateStart ? new Date(dateStart).getTime() : null;
+            const endTs = dateEnd ? new Date(dateEnd).getTime() + 86400000 : null; // End of day
+
+            filteredRows = filteredRows.filter(r => {
+                // Search Text
+                if (searchVal) {
+                    const text = (
+                        (r.ticket_number || r.task_ticket_no || '') + ' ' + 
+                        (r.title || r.task_subject || '') + ' ' + 
+                        (r.description || r.task_description || '')
+                    ).toLowerCase();
+                    if (!text.includes(lowerSearch)) return false;
+                }
+
+                // Status
+                if (statusVal) {
+                    const s = String(r.task_status || r.status_name || '').toLowerCase();
+                    if (s !== statusVal.toLowerCase()) return false;
+                }
+
+                // Priority
+                if (priorityVal) {
+                    const p = String(r.task_priority || r.priority_name || '').toLowerCase();
+                    if (p !== priorityVal.toLowerCase()) return false;
+                }
+
+                // Date Range
+                if (startTs || endTs) {
+                    const d = r.created_date || r.created_at;
+                    if (!d) return false;
+                    const ts = new Date(d).getTime();
+                    if (startTs && ts < startTs) return false;
+                    if (endTs && ts > endTs) return false;
+                }
+
+                // Unassigned
+                if (unassignedOnly) {
+                    const assigned = r.task_assigned_to || r.assigned_to_name;
+                    if (assigned && assigned !== 'Unassigned') return false;
+                }
+
+                return true;
+            });
         }
 
         table.rows.add(filteredRows.map(function(r) { 
@@ -448,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sel.innerHTML = '<option value="">Select Agent</option>' + 
                 (Array.isArray(users) ? users : []).map(u => {
                     const id = u.id || u.user_id || u.unique_id;
-                    const name = u.full_name || u.username || u.email;
+                    const name = u.display_name;
                     return `<option value="${id}">${name}</option>`;
                 }).join('');
         } catch (e) {
@@ -562,12 +622,30 @@ document.addEventListener('DOMContentLoaded', function() {
             const t = await r.text();
             const d = safeParseJson(t) || {};
             const rows = Array.isArray(d) ? d : (d.organizations || d.data || []);
+            loadedOrganizations = rows; // Save for product lookup
+            
             const sel = document.getElementById('organization_id');
             if(sel) {
                 sel.innerHTML = '<option value="">Select Organization</option>' + 
                     rows.map(o => `<option value="${o.org_id || o.id}">${o.org_name || o.name || ''}</option>`).join('');
             }
         } catch (_) {}
+    }
+
+    function loadProducts(orgId) {
+        const sel = document.getElementById('product_id');
+        if (!sel) return;
+        
+        if (!orgId) {
+            sel.innerHTML = '<option value="">Select Product</option>';
+            return;
+        }
+
+        const org = loadedOrganizations.find(o => String(o.org_id || o.id) === String(orgId));
+        const products = org ? (org.products || []) : [];
+        
+        sel.innerHTML = '<option value="">Select Product</option>' + 
+            products.map(p => `<option value="${p.product_id || p.id}">${p.product_name || p.name}</option>`).join('');
     }
 
     // --- Event Listeners ---
@@ -610,6 +688,39 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
     });
+
+    // --- Filter Event Listeners ---
+    const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', renderTickets);
+    }
+
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            document.getElementById('tickets_search').value = '';
+            document.getElementById('filter_status').value = '';
+            document.getElementById('filter_priority').value = '';
+            document.getElementById('filter_start').value = '';
+            document.getElementById('filter_end').value = '';
+            document.getElementById('filter_unassigned').checked = false;
+            renderTickets();
+        });
+    }
+
+    const searchInput = document.getElementById('tickets_search');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') renderTickets();
+        });
+    }
+
+    const orgSelect = document.getElementById('organization_id');
+    if (orgSelect) {
+        orgSelect.addEventListener('change', function() {
+            loadProducts(this.value);
+        });
+    }
 
     // Initial load
     loadTickets();

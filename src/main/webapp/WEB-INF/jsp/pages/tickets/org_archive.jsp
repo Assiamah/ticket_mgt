@@ -8,7 +8,7 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div class="header-content">
                 <h1 class="page-title mb-2">Organization Archive</h1>
-                <p class="page-subtitle text-muted mb-0">View and manage deactivated or historical organization records</p>
+                <p class="page-subtitle text-muted mb-0">View and manage archived tickets</p>
             </div>
             <div class="header-actions">
                 <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2" id="refreshArchiveBtn">
@@ -69,10 +69,11 @@
                     <table id="org-archive-datatable" class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
-                                <th>Organization</th>
-                                <th>Archive Date</th>
-                                <th>Reason</th>
-                                <th>Previous Status</th>
+                                <th>Ticket Details</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Archived Date</th>
+                                <th>Days Archived</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
