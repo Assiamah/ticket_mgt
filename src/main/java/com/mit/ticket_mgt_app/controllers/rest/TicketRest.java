@@ -1790,34 +1790,4 @@ public class TicketRest {
         }
     }
 
-    @PostMapping("/my_assigned_tasks")
-    public ResponseEntity<?> getMyAssignedTasks(@RequestBody(required = false) Map<String, Object> payload,
-            HttpSession session) {
-        try {
-            if (payload == null)
-                payload = new HashMap<>();
-
-            // Add user info to payload if available and not already present
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
-                if (userInfo != null) {
-                    if (!payload.containsKey("user_id") && userInfo.get("id") != null) {
-                        payload.put("user_id", userInfo.get("id"));
-                    }
-                }
-            } catch (Exception ignore) {
-            }
-
-            JSONObject obj = new JSONObject(payload);
-            String res = ticketService.getMyAssignedTasks(wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
-            return ResponseEntity.ok(res);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(
-                    "{\"status\": \"error\", \"message\": \"Failed to get my assigned tasks: " + e.getMessage()
-                            + "\"}");
-        }
-    }
 }

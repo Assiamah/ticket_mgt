@@ -490,8 +490,14 @@ async function loadUserMenusForView(userId) {
     try {
         const response = await fetch(`${window.CONTEXT_PATH}/api/users/${userId}/menus`);
         if (!response.ok) throw new Error('Failed to load menus');
-        const data = await response.json();
-        const menus = safeParse(data); // Assuming array of menus
+        const rawData = await response.json();
+        
+        const parsed = safeParse(rawData);
+        let menus = [];
+        if (Array.isArray(parsed)) menus = parsed;
+        else if (parsed && parsed.data && Array.isArray(parsed.data)) menus = parsed.data;
+        else if (parsed && parsed.menus && Array.isArray(parsed.menus)) menus = parsed.menus;
+        else if (parsed && parsed.content && Array.isArray(parsed.content)) menus = parsed.content;
         
         if (!menus || menus.length === 0) {
             container.innerHTML = '<div class="text-muted text-center py-2">No specific menu permissions assigned</div>';
@@ -499,14 +505,16 @@ async function loadUserMenusForView(userId) {
         }
         
         // Render menus (simplified)
-        container.innerHTML = menus.map(m => `<span class="badge bg-primary-subtle text-primary me-1 mb-1">${m.menu_name || m.name}</span>`).join('');
+        container.innerHTML = menus.map(m => `<span class="badge bg-primary-subtle text-primary me-1 mb-1">${m.title || m.menu_name || m.name || m.menuName || 'Unknown'}</span>`).join('');
         
     } catch (e) {
+        console.error('Error loading view menus:', e);
         container.innerHTML = '<div class="text-danger small">Failed to load permissions</div>';
     }
 }
 
 window.assignMenus = async function(userId) {
+    const menusList = document.getElementById('menusList');
     try {
         // 1. Fetch User Info for Title
         // Optimistically we could use the row data if passed, but fetching ensures freshness
@@ -520,7 +528,6 @@ window.assignMenus = async function(userId) {
         document.getElementById('assign_user_id').value = userId;
         
         // 2. Load All Menus & User's Menus
-        const menusList = document.getElementById('menusList');
         menusList.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
         
         new bootstrap.Modal(document.getElementById('assignMenusModal')).show();
@@ -533,24 +540,40 @@ window.assignMenus = async function(userId) {
         const allMenusRaw = await allMenusResp.json();
         const userMenusRaw = await userMenusResp.json();
         
-        const allMenus = safeParse(allMenusRaw) || [];
-        const userMenus = safeParse(userMenusRaw) || [];
-        const userMenuIds = new Set(userMenus.map(m => m.menu_id || m.id)); // Adjust ID field
+        // Helper to extract array from various response structures
+        const getArray = (data) => {
+            const parsed = safeParse(data);
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed && parsed.data && Array.isArray(parsed.data)) return parsed.data;
+            if (parsed && parsed.menus && Array.isArray(parsed.menus)) return parsed.menus;
+            if (parsed && parsed.content && Array.isArray(parsed.content)) return parsed.content;
+            return [];
+        };
+        
+        const allMenus = getArray(allMenusRaw);
+        const userMenus = getArray(userMenusRaw);
+        
+        // Create Set of IDs for O(1) lookup
+        // Handle various ID field names (id, menu_id, menuId)
+        const userMenuIds = new Set(userMenus.map(m => String(m.menu_id || m.id || m.menuId)));
         
         // Render Checkboxes
-        if (allMenus.length === 0) {
+        if (!allMenus || allMenus.length === 0) {
             menusList.innerHTML = '<div class="text-center text-muted">No menus available</div>';
             return;
         }
         
         let html = '';
         allMenus.forEach(menu => {
-            const isChecked = userMenuIds.has(menu.menu_id || menu.id) ? 'checked' : '';
+            const menuId = String(menu.menu_id || menu.id || menu.menuId);
+            const menuName = menu.title || menu.menu_name || menu.name || menu.menuName || 'Unknown Menu';
+            const isChecked = userMenuIds.has(menuId) ? 'checked' : '';
+            
             html += `
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" value="${menu.menu_id || menu.id}" id="menu_${menu.menu_id || menu.id}" ${isChecked}>
-                    <label class="form-check-label" for="menu_${menu.menu_id || menu.id}">
-                        ${menu.menu_name || menu.name} <small class="text-muted">(${menu.url || '-'})</small>
+                    <input class="form-check-input" type="checkbox" value="${menuId}" id="menu_${menuId}" ${isChecked}>
+                    <label class="form-check-label" for="menu_${menuId}">
+                        ${menuName} <small class="text-muted">(${menu.url || menu.route || '-'})</small>
                     </label>
                 </div>
             `;
@@ -559,6 +582,9 @@ window.assignMenus = async function(userId) {
         
     } catch (error) {
         console.error('Error preparing menu assignment:', error);
+        if (menusList) {
+            menusList.innerHTML = `<div class="text-center text-danger p-3">Error loading menu data: ${error.message}</div>`;
+        }
         showToast('Error loading menu data', 'error');
     }
 };

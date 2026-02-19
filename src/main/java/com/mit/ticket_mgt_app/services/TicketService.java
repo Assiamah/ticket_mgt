@@ -273,37 +273,6 @@ public class TicketService {
         }
     }
 
-    public String getMyAssignedTasks(String web_service_url, String web_service_api_key, String jsonRequest) {
-        String output = null;
-        try {
-            Client client = Client.create();
-            String base = web_service_url == null ? "" : web_service_url;
-            if (!base.endsWith("/"))
-                base += "/";
-            WebResource webResource = client.resource(base + "tickets_mgt_services/get_my_assigned_tasks");
-
-            ClientResponse response_ws = webResource.type("application/json")
-                    .header("x-api-key", web_service_api_key)
-                    .post(ClientResponse.class, jsonRequest);
-
-            if (response_ws.getStatus() != 200) {
-                String errBody = null;
-                try {
-                    errBody = response_ws.getEntity(String.class);
-                } catch (Exception ignore) {
-                }
-                throw new RuntimeException("Failed : HTTP error code : " + response_ws.getStatus() +
-                        (errBody != null && !errBody.isEmpty() ? (" | Body: " + errBody) : ""));
-            }
-            output = response_ws.getEntity(String.class);
-        } catch (Exception e) {
-            logger.severe("Error getting my assigned tasks: " + e.getMessage());
-            throw new RuntimeException("Error getting my assigned tasks: " + e.getMessage(), e);
-        }
-
-        return output;
-    }
-
     public String createTicket(String web_service_url, String web_service_api_key, String ticketData) {
         String output = null;
         try {
