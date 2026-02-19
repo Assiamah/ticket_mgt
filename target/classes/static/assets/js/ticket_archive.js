@@ -4,7 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    const ARCHIVE_API = window.CONTEXT_PATH + '/v1/organization_service/fetch_archived_tickets';
+    const ARCHIVE_API_URL = (typeof ARCHIVE_API !== 'undefined') ? ARCHIVE_API : (window.CONTEXT_PATH || '') + '/v1/organization_service/fetch_archived_tickets';
     let allTickets = [];
     let table = null;
 
@@ -87,9 +87,10 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             { 
                 data: 'archived_date',
-                render: function(data) {
-                    if (!data) return 'N/A';
-                    return new Date(data).toLocaleDateString() + ' ' + new Date(data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                render: function(data, type, row) {
+                    const dateVal = data || row.archived_at || row.created_at || row.created_date;
+                    if (!dateVal) return 'N/A';
+                    return new Date(dateVal).toLocaleDateString() + ' ' + new Date(dateVal).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 }
             },
             { 
@@ -140,11 +141,80 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Load Organizations
+    async function loadOrganizations() {
+        console.log('Loading organizations...');
+        try {
+            const apiUrl = window.ORG_API || (window.CONTEXT_PATH || '') + '/v1/organization_service/get_all_organizations';
+            console.log('Fetching organizations from:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            if (response.ok) {
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse organization response:', e);
+                    return;
+                }
+                
+                // Handle various response structures
+                // If data is null/undefined, default to empty array
+                if (!data) data = [];
+                
+                const organizations = Array.isArray(data) ? data : (data.organizations || data.data || []);
+                console.log('Organizations loaded:', organizations.length);
+                
+                const orgSelect = document.getElementById('filter_organization');
+                if (orgSelect) {
+                    let html = '<option value="">All Organizations</option>';
+                    
+                    if (Array.isArray(organizations)) {
+                        organizations.forEach(o => {
+                            const id = o.org_id || o.id;
+                            const name = o.org_name || o.name;
+                            if (id && name) {
+                                html += `<option value="${id}">${name}</option>`;
+                            }
+                        });
+                    }
+                    
+                    orgSelect.innerHTML = html;
+                    
+                    // Set default from user info if available
+                    if (window.userInfo && (window.userInfo.organization_uuid || window.userInfo.org_id)) {
+                        const userOrgId = window.userInfo.organization_uuid || window.userInfo.org_id;
+                        orgSelect.value = userOrgId;
+                        
+                        if (orgSelect.value !== userOrgId) {
+                            console.warn('User organization ID not found in dropdown options:', userOrgId);
+                        }
+                    }
+                } else {
+                    console.error('Organization filter dropdown element not found!');
+                }
+            } else {
+                console.error('Failed to load organizations, status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error loading organizations:', error);
+        }
+    }
+
     // Load Products
     async function loadProducts() {
         try {
-            const orgId = window.userInfo ? (window.userInfo.organization_uuid || window.userInfo.org_id) : null;
-            if (!orgId) return;
+            const orgSelect = document.getElementById('filter_organization');
+            // STRICTLY use dropdown value. 
+            // The dropdown is the source of the organization UUID on the page.
+            const orgId = orgSelect ? orgSelect.value : null;
+            
+            if (!orgId) {
+                 const productSelect = document.getElementById('filter_product');
+                 if (productSelect) productSelect.innerHTML = '<option value="">All Products</option>';
+                 return;
+            }
 
             const response = await fetch(`${window.CONTEXT_PATH}/api/products?org_id=${orgId}`);
             if (response.ok) {
@@ -171,16 +241,20 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             // Get user info from global context
             const userId = window.userInfo ? (window.userInfo.unique_id || window.userInfo.user_uuid || window.userInfo.id) : null;
-            const orgId = window.userInfo ? (window.userInfo.organization_uuid || window.userInfo.org_id) : null;
             
             // Get filter values
             const searchInput = document.getElementById('search_archive');
             const fromDateInput = document.getElementById('filter_from');
             const toDateInput = document.getElementById('filter_to');
             const productInput = document.getElementById('filter_product');
+            const orgInput = document.getElementById('filter_organization');
             
             const searchText = searchInput ? searchInput.value : '';
             const productId = productInput ? productInput.value : '';
+            
+            // STRICTLY use dropdown value.
+            // The dropdown is the source of the organization UUID on the page.
+            const orgId = orgInput ? orgInput.value : '';
             
             const currentYear = new Date().getFullYear();
             let fromDate = fromDateInput && fromDateInput.value ? fromDateInput.value : `${currentYear}-01-01`;
@@ -248,21 +322,91 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateStats(tickets) {
+        // Calculate stats
+        let total = tickets.length;
+        let resolved = 0;
+        let critical = 0;
+        let high = 0;
+        let totalDays = 0;
+        let thisMonth = 0;
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        tickets.forEach(t => {
+            // Resolved
+            // Check status_id or status string
+            if (t.status_id == 3 || (t.status && t.status.toLowerCase() === 'resolved')) {
+                resolved++;
+            }
+
+            // Critical Priority
+            // Check priority_level or priority string
+            if (t.priority_level == 1 || (t.priority && t.priority.toLowerCase() === 'critical')) {
+                critical++;
+            }
+
+            // High Priority
+            if (t.priority_level == 2 || (t.priority && t.priority.toLowerCase() === 'high')) {
+                high++;
+            }
+
+            // Days Archived (Avg Age)
+            if (t.days_archived) {
+                totalDays += t.days_archived;
+            }
+
+            // This Month
+            const archiveDateStr = t.archived_at || t.archived_date || t.created_date;
+            if (archiveDateStr) {
+                const d = new Date(archiveDateStr);
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                    thisMonth++;
+                }
+            }
+        });
+
+        // Update DOM elements with animation
+        animateValue('total_archived', parseInt(document.getElementById('total_archived')?.textContent || 0), total);
+        animateValue('archived_resolved', parseInt(document.getElementById('archived_resolved')?.textContent || 0), resolved);
+        animateValue('archived_critical', parseInt(document.getElementById('archived_critical')?.textContent || 0), critical);
+        animateValue('archived_high', parseInt(document.getElementById('archived_high')?.textContent || 0), high);
+        
+        // Avg Age
+        const avgAge = total > 0 ? Math.round(totalDays / total) : 0;
+        const avgEl = document.getElementById('avg_archive_age');
+        if (avgEl) {
+            avgEl.textContent = avgAge + ' days';
+        }
+
+        animateValue('archived_this_month', parseInt(document.getElementById('archived_this_month')?.textContent || 0), thisMonth);
+        
+        // Update header count
         const countEl = document.getElementById('archiveCount');
-        if (countEl) countEl.textContent = tickets.length;
+        if (countEl) countEl.textContent = total;
+    }
+
+    function animateValue(id, start, end) {
+        if (start === end) return;
+        const range = end - start;
+        const duration = 1000;
+        let startTime = null;
         
-        const totalEl = document.getElementById('total_archived');
-        if (totalEl) totalEl.textContent = tickets.length;
-        
-        // Calculate other stats
-        const resolved = tickets.filter(t => t.status_id == 3).length; // Assuming 3 is Resolved
-        const critical = tickets.filter(t => t.priority_level == 1).length; // Assuming 1 is Critical
-        
-        const resolvedEl = document.getElementById('archived_resolved');
-        if (resolvedEl) resolvedEl.textContent = resolved;
-        
-        const criticalEl = document.getElementById('archived_critical');
-        if (criticalEl) criticalEl.textContent = critical;
+        const obj = document.getElementById(id);
+        if (!obj) return;
+
+        function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            obj.textContent = Math.floor(progress * range + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                obj.textContent = end;
+            }
+        }
+        window.requestAnimationFrame(step);
     }
 
     // Event Listeners for Filters
@@ -279,13 +423,27 @@ document.addEventListener('DOMContentLoaded', function() {
             if(document.getElementById('filter_to')) document.getElementById('filter_to').value = '';
             if(document.getElementById('filter_priority')) document.getElementById('filter_priority').value = '';
             if(document.getElementById('filter_product')) document.getElementById('filter_product').value = '';
+            if(document.getElementById('filter_organization')) document.getElementById('filter_organization').value = '';
+            loadProducts(); // Reload products for default org
             loadArchivedTickets();
         });
     }
 
+    // Organization filter listener
+    const orgSelect = document.getElementById('filter_organization');
+    if (orgSelect) {
+        orgSelect.addEventListener('change', function() {
+            loadProducts(); // Reload products for selected org
+            loadArchivedTickets(); // Auto reload tickets
+        });
+    }
+
     // Initial load
-    loadProducts();
-    loadArchivedTickets();
+    // Chain the loading sequence to ensure dropdown is the source
+    loadOrganizations().then(() => {
+        loadProducts();
+        loadArchivedTickets();
+    });
 
     // Refresh button
     const refreshBtn = document.getElementById('refreshTicketsBtn');

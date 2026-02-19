@@ -350,7 +350,10 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label for="password" class="form-label mb-0">Password <span class="text-danger">*</span></label>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" onclick="document.getElementById('password').value='Welcome@123';document.getElementById('confirm_password').value='Welcome@123'">Set Default (Welcome@123)</button>
+                                        </div>
                                         <input type="password" class="form-control modern-input" id="password" name="password" required placeholder="Minimum 8 characters" autocomplete="new-password">
                                     </div>
                                     <div class="col-md-6 mb-3">
@@ -416,7 +419,7 @@
                                         <div class="form-check form-switch mt-2">
                                             <input class="form-check-input" type="checkbox" id="expire_pass" name="expire_pass">
                                             <label class="form-check-label" for="expire_pass">
-                                                Enable Password Expiration (90 days)
+                                                Force Password Change (Expire Password)
                                             </label>
                                         </div>
                                     </div>
@@ -660,67 +663,68 @@
         </div>
     </div>
 
-    <!-- Reset Password Modal -->
-    <div class="modal fade modal-blur" id="resetPasswordModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+    <!-- Security Actions Modal -->
+    <div class="modal fade modal-blur" id="securityActionModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
         <div class="modal-dialog modal-md" style="margin-top: 100px;">
             <div class="modal-content modern-modal">
                 <div class="modal-header border-0 pb-0">
                     <div class="d-flex align-items-center gap-3">
                         <div class="modal-icon" style="color: #f59e0b;">
-                            <i class="bi bi-key"></i>
+                            <i class="bi bi-shield-lock"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title">Reset Password</h5>
-                            <p class="text-muted mb-0" id="reset_user_name"></p>
+                            <h5 class="modal-title">Security Actions</h5>
+                            <p class="text-muted mb-0" id="security_user_name"></p>
                         </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body pt-3">
-                    <form id="resetPasswordForm">
-                        <input type="hidden" id="reset_user_id" name="user_id">
+                    <form id="securityActionForm">
+                        <input type="hidden" id="security_user_id" name="user_id">
                         
-                        <!-- Default Password Section -->
+                        <!-- Force Password Change Toggle -->
                         <div class="mb-4 p-3 bg-light rounded-3 border">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="force_password_change" name="expire_pass">
+                                <label class="form-check-label fw-bold" for="force_password_change">Force Password Change</label>
+                            </div>
+                            <small class="text-muted d-block mt-1">If enabled, the user will be forced to change their password upon next login.</small>
+                        </div>
+
+                        <h6 class="fw-bold mb-3">Set New Password</h6>
+
+                        <!-- Default Password Section -->
+                        <div class="mb-3">
                             <div class="d-flex align-items-center justify-content-between mb-2">
-                                <label class="form-label mb-0 fw-bold">Set Quick Password</label>
+                                <label class="form-label mb-0">Quick Password</label>
                                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="useDefaultPassword()">
                                     <i class="bi bi-magic me-1"></i> Apply
                                 </button>
                             </div>
-                            <div class="input-group">
+                            <div class="input-group input-group-sm">
                                 <input type="text" class="form-control bg-white" id="default_password_display" value="Welcome@123" placeholder="Enter a temporary password">
                                 <button class="btn btn-outline-secondary" type="button" onclick="copyDefaultPassword()">
                                     <i class="bi bi-clipboard"></i>
                                 </button>
                             </div>
-                            <small class="text-muted mt-1 d-block">Modify this password and click 'Apply' to pre-fill the fields below</small>
                         </div>
 
-                        <hr class="my-4 opacity-10">
-
                         <div class="mb-3">
-                            <label for="new_password" class="form-label fw-bold">New Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control modern-input" id="new_password" name="new_password" required placeholder="Enter new password" autocomplete="new-password">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control modern-input" id="new_password" name="new_password" placeholder="Leave empty to keep current password" autocomplete="new-password">
                         </div>
                         <div class="mb-3">
-                            <label for="confirm_new_password" class="form-label fw-bold">Confirm Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control modern-input" id="confirm_new_password" name="confirm_new_password" required placeholder="Confirm new password" autocomplete="new-password">
-                        </div>
-                        
-                        <div class="alert alert-warning mb-0">
-                            <div class="d-flex gap-2">
-                                <i class="bi bi-exclamation-triangle flex-shrink-0"></i>
-                                <small>The user will be required to change their password on next login</small>
-                            </div>
+                            <label for="confirm_new_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control modern-input" id="confirm_new_password" name="confirm_new_password" placeholder="Confirm new password" autocomplete="new-password">
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitResetPassword">
+                    <button type="button" class="btn btn-primary" id="submitSecurityAction">
                         <i class="bi bi-check-circle me-1"></i>
-                        Reset Password
+                        Save Changes
                     </button>
                 </div>
             </div>
@@ -811,4 +815,4 @@
         }
      });
  </script>
- <script src="${pageContext.request.contextPath}/assets/js/accounts.js?v=${pageContext.session.lastAccessedTime}"></script>
+ <script src="${pageContext.request.contextPath}/assets/js/accounts.js?v=${pageContext.session.lastAccessedTime}_updated"></script>

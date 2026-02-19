@@ -20,6 +20,9 @@ import com.mit.ticket_mgt_app.helpers.LocalMacAddress;
 import com.mit.ticket_mgt_app.model.Menu;
 import com.mit.ticket_mgt_app.services.AuthService;
 import com.mit.ticket_mgt_app.services.MenuService;
+import com.mit.ticket_mgt_app.services.UserService;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 // import com.mit.ticket_mgt_app.utils.EncryptionUtil;
 // import com.mit.ticket_mgt_app.utils.isAuthenticatedUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,6 +84,9 @@ public class AuthController {
     @Autowired
     private MenuService menuService;
 
+    @Autowired
+    private UserService userService;
+
     @GetMapping("/")
     public String showIndexPage(Model model) {
         model.addAttribute("content", "../auth/login.jsp");
@@ -93,6 +99,12 @@ public class AuthController {
         return "layouts/guest";
     }
 
+    @GetMapping("/forgot-password")
+    public String showForgotPasswordPage(Model model) {
+        model.addAttribute("content", "../auth/forgot_password.jsp");
+        return "layouts/guest";
+    }
+
     @GetMapping("/login/2fa")
     public String show2faPage(Model model, HttpSession session) {
         if (session.getAttribute("passKey") == null) {
@@ -102,6 +114,23 @@ public class AuthController {
 
         model.addAttribute("content", "../auth/login_2fa.jsp");
         return "layouts/guest";
+    }
+
+    @PostMapping("/reset_password_with_default")
+    @ResponseBody
+    public String resetPasswordWithDefault(@RequestBody Map<String, Object> requestData) {
+        try {
+            JSONObject requestJson = new JSONObject(requestData);
+            String webServiceResponse = userService.resetPasswordWithDefault(
+                wsURLConfig.getWeb_service_url_ser(),
+                wsURLConfig.getWeb_service_url_ser_api_key(),
+                requestJson.toString()
+            );
+            return webServiceResponse;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"success\": false, \"message\": \"Failed to reset password: " + e.getMessage() + "\"}";
+        }
     }
 
     @GetMapping("/logout")
@@ -224,6 +253,15 @@ public class AuthController {
             passKeyData.put("expiryTime", System.currentTimeMillis() + 15 * 60 * 1000);
 
             session.setAttribute("passKey", passKeyData);
+
+            // Check if password change is required
+            boolean forceToChangePassword = resData.optBoolean("force_to_change_password", false);
+            if (forceToChangePassword) {
+                 model.addAttribute("forceChangePassword", true);
+                 model.addAttribute("userId", resData.getString("unique_id"));
+                 model.addAttribute("content", "../auth/login.jsp");
+                 return "layouts/guest";
+            }
 
             System.out.println(resData.getString("pin"));
             session.setAttribute("phone_number", resData.getString("phone_number"));
@@ -647,26 +685,26 @@ public class AuthController {
                     menuTree.add(orgParent);
                 }
                 java.util.List<Menu> orgChildren = orgParent.getChildren();
-                // Organization Archive
+                // Rename Organization Archive to Add Organization
                 {
                     Menu existing = null;
                     for (Menu c : orgChildren) {
-                        if ("Organization Archive".equalsIgnoreCase(c.getTitle())) {
+                        if ("Organization Archive".equalsIgnoreCase(c.getTitle())
+                                || "Add Organization".equalsIgnoreCase(c.getTitle())) {
                             existing = c;
                             break;
                         }
                     }
 
                     if (existing != null) {
-                        // Ensure route is correct
-                        if (!"/tickets/org_archive".equals(existing.getRoute())) {
-                            existing.setRoute("/tickets/org_archive");
-                        }
+                        // Update title and route
+                        existing.setTitle("Add Organization");
+                        existing.setRoute("/organizations/add");
                     } else {
                         Menu child = new Menu();
-                        child.setId(Math.abs(("Organization Archive" + "/tickets/org_archive").hashCode()));
-                        child.setTitle("Organization Archive");
-                        child.setRoute("/tickets/org_archive");
+                        child.setId(Math.abs(("Add Organization" + "/organizations/add").hashCode()));
+                        child.setTitle("Add Organization");
+                        child.setRoute("/organizations/add");
                         child.setParentId(orgParent.getId());
                         child.setPosition(orgChildren.size() + 1);
                         orgChildren.add(child);

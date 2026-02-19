@@ -43,6 +43,49 @@ public class TicketRest {
         this.ticketService = ticketService;
     }
 
+    @PostMapping("/my_assigned_tasks")
+    public ResponseEntity<?> getMyAssignedTasks(@RequestBody(required = false) Map<String, Object> payload,
+            HttpSession session) {
+        try {
+            if (payload == null)
+                payload = new HashMap<>();
+
+            // Debug logging
+            System.out.println("Received payload: " + payload);
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                System.out.println("Session userInfo: " + userInfo);
+
+                if (userInfo != null) {
+                    if (!payload.containsKey("user_id")) {
+                        if (userInfo.get("unique_id") != null) {
+                            payload.put("user_id", userInfo.get("unique_id"));
+                            System.out.println("Added user_id from unique_id: " + userInfo.get("unique_id"));
+                        } else if (userInfo.get("id") != null) {
+                            payload.put("user_id", userInfo.get("id"));
+                            System.out.println("Added user_id from id: " + userInfo.get("id"));
+                        }
+                    }
+                } else {
+                    System.out.println("UserInfo is null in session");
+                }
+            } catch (Exception e) {
+                System.out.println("Error accessing session: " + e.getMessage());
+            }
+
+            JSONObject obj = new JSONObject(payload);
+            String res = ticketService.getMyAssignedTasks(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to get my assigned tasks: " + e.getMessage()
+                            + "\"}");
+        }
+    }
+
     @PostMapping("/get_org_archived_tasks")
     public ResponseEntity<?> getOrgArchivedTasks(@RequestBody Map<String, Object> payload, HttpSession session) {
         try {
@@ -1746,5 +1789,35 @@ public class TicketRest {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-    // end of TicketRest
+
+    @PostMapping("/my_assigned_tasks")
+    public ResponseEntity<?> getMyAssignedTasks(@RequestBody(required = false) Map<String, Object> payload,
+            HttpSession session) {
+        try {
+            if (payload == null)
+                payload = new HashMap<>();
+
+            // Add user info to payload if available and not already present
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> userInfo = (Map<String, Object>) session.getAttribute("userInfo");
+                if (userInfo != null) {
+                    if (!payload.containsKey("user_id") && userInfo.get("id") != null) {
+                        payload.put("user_id", userInfo.get("id"));
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+
+            JSONObject obj = new JSONObject(payload);
+            String res = ticketService.getMyAssignedTasks(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to get my assigned tasks: " + e.getMessage()
+                            + "\"}");
+        }
+    }
 }

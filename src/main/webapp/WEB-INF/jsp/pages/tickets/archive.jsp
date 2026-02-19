@@ -111,6 +111,12 @@
             </div>
           </div>
           <div class="col-xl-2 col-lg-3">
+            <label class="form-label">Organization</label>
+            <select id="filter_organization" class="form-select">
+              <option value="">All Organizations</option>
+            </select>
+          </div>
+          <div class="col-xl-2 col-lg-3">
             <label class="form-label">Product</label>
             <select id="filter_product" class="form-select">
               <option value="">All Products</option>
@@ -431,6 +437,19 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    window.CONTEXT_PATH = "${pageContext.request.contextPath}";
+    window.userInfo = {
+        id: "${userInfo.id}",
+        user_uuid: "${userInfo.user_uuid}",
+        role: "${userInfo.role}",
+        organization_uuid: "${userInfo.organization_uuid}",
+        org_id: "${userInfo.org_id}"
+    };
+    window.TICKET_API_BASE = "${pageContext.request.contextPath}/api/tickets";
+    window.ORG_API = "${pageContext.request.contextPath}/v1/organization_service/get_all_organizations";
+    window.ARCHIVE_API = "${pageContext.request.contextPath}/v1/organization_service/fetch_archived_tickets";
+  </script>
   <script src="${pageContext.request.contextPath}/assets/js/tickets.js"></script>
   <script src="${pageContext.request.contextPath}/assets/js/ticket_archive.js"></script>
 </main>

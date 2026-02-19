@@ -167,12 +167,18 @@ document.addEventListener('DOMContentLoaded', function() {
                                         data-task-uid="${row.task_uid || ''}" title="View Ticket">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                        `;
+
+                        if (isAdmin) {
+                            actions += `
                                 <button type="button" class="btn btn-light-primary icon-btn-sm btn-edit" 
                                         data-task-id="${row.ticket_id || row.task_id || ''}" title="Edit Ticket">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                            </div>
-                        `; 
+                            `;
+                        }
+
+                        actions += `</div>`; 
                         return actions;
                     } 
                 }
@@ -196,7 +202,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Data Loading ---
     async function loadTickets() { 
-        if (!table) return; // Skip if table not initialized
+        console.log('loadTickets called');
+        if (!table) {
+            console.warn('Table not initialized, skipping loadTickets');
+            return; // Skip if table not initialized
+        }
+        
+        const pathname = window.location.pathname;
+        console.log('Current pathname:', pathname);
+        const currentUserId = typeof CURRENT_USER_ID !== 'undefined' ? CURRENT_USER_ID : null;
+
+        // Special handling for Assigned Jobs page
+        if (pathname.includes('assigned_jobs')) {
+            console.log('Detected Assigned Jobs page, fetching from proxy...');
+            try {
+                const r = await fetch(TICKET_API + '/my_assigned_tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(currentUserId ? { user_id: currentUserId } : {})
+                });
+                
+                if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+
+                const t = await r.text();
+                const d = safeParseJson(t) || {};
+                console.log('Assigned jobs data:', d);
+                const rows = Array.isArray(d) ? d : (d.tickets || d.data || d.items || d.rows || []);
+                
+                // Ensure rows have assigned_to matching current user so renderTickets doesn't filter them out
+                allRows = Array.isArray(rows) ? rows.map(row => {
+                    if (currentUserId && !row.assigned_to && !row.assigned_to_id) {
+                        return { ...row, assigned_to: currentUserId };
+                    }
+                    return row;
+                }) : [];
+                
+                renderTickets();
+            } catch (e) {
+                console.error('loadTickets (assigned jobs) error', e);
+                showNotification('Error loading assigned jobs: ' + e.message, 'error');
+            }
+            return;
+        }
+
         try { 
             const r = await fetch(TICKET_API + '/list'); 
             const t = await r.text(); 
@@ -226,12 +276,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     String(r.assigned_to) === String(currentUserId) ||
                     String(r.assigned_to_id) === String(currentUserId)
                 );
-            } else if (pathname.includes('assigned_jobs')) {
-                filteredRows = allRows.filter(r => 
-                    String(r.assigned_to) === String(currentUserId) ||
-                    String(r.assigned_to_id) === String(currentUserId)
-                );
-            }
+            } 
+            // else if (pathname.includes('assigned_jobs')) {
+            //     // API already filters by user, so no need to filter again (avoids ID vs UUID mismatch)
+            //     filteredRows = allRows; 
+            // }
         }
 
         // 2. User Filters

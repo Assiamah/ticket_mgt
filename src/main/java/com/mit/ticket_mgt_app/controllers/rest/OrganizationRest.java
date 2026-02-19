@@ -57,8 +57,21 @@ public class OrganizationRest {
         // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
         // \"SESSION_INVALID.\"}");
         // }
+        System.out.println("DEBUG: createOrganization payload received: " + payload);
+        if (payload.containsKey("product_ids")) {
+            Object pIds = payload.get("product_ids");
+            System.out.println("DEBUG: product_ids class: " + (pIds == null ? "null" : pIds.getClass().getName()));
+            System.out.println("DEBUG: product_ids value: " + pIds);
+            if (pIds instanceof java.util.List) {
+                java.util.List<?> list = (java.util.List<?>) pIds;
+                for (int i = 0; i < list.size(); i++) {
+                     System.out.println("DEBUG: product_ids[" + i + "]: " + list.get(i) + " (type: " + (list.get(i) == null ? "null" : list.get(i).getClass().getName()) + ")");
+                }
+            }
+        }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            System.out.println("DEBUG: createOrganization JSON to service: " + obj.toString());
             webServiceResponse = organizationService.createOrganization(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);
@@ -265,8 +278,20 @@ public class OrganizationRest {
         // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
         // \"SESSION_INVALID.\"}");
         // }
+        System.out.println("DEBUG: updateOrganization payload received: " + payload);
+        if (payload.containsKey("product_ids")) {
+            Object pIds = payload.get("product_ids");
+            System.out.println("DEBUG: updateOrganization product_ids: " + pIds);
+            if (pIds instanceof java.util.List) {
+                java.util.List<?> list = (java.util.List<?>) pIds;
+                for (int i = 0; i < list.size(); i++) {
+                     System.out.println("DEBUG: updateOrganization product_ids[" + i + "]: " + list.get(i));
+                }
+            }
+        }
         try {
             org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
+            System.out.println("DEBUG: updateOrganization JSON to service: " + obj.toString());
             webServiceResponse = organizationService.updateOrganization(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
             return ResponseEntity.ok(webServiceResponse);

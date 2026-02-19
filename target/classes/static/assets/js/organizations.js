@@ -4,11 +4,34 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    const ORG_API = window.CONTEXT_PATH + '/v1/organization_service';
-    const PRODUCT_API = window.CONTEXT_PATH + '/api/products';
+    const ORG_API = (window.CONTEXT_PATH || '') + '/v1/organization_service';
+    const PRODUCT_API = (window.CONTEXT_PATH || '') + '/api/products';
     let allOrgs = [];
     let allProducts = [];
     let table = null;
+
+    function getProductId(p) {
+        let id = null;
+        if (p.product_id !== undefined && p.product_id !== null) id = p.product_id;
+        else if (p.id !== undefined && p.id !== null) id = p.id;
+        else if (p.productId !== undefined && p.productId !== null) id = p.productId;
+        else if (p.uuid !== undefined && p.uuid !== null) id = p.uuid;
+        
+        // Explicitly check for string "undefined" which might come from bad serialization
+        if (String(id) === 'undefined') {
+            console.warn('getProductId: Found undefined ID for product:', p);
+            return null;
+        }
+        return id;
+    }
+
+    // Check if we should open Add Modal automatically
+    if (window.location.pathname.endsWith('/organizations/add')) {
+        setTimeout(() => {
+            const btn = document.getElementById('btnAddOrg');
+            if (btn) btn.click();
+        }, 500); // Small delay to ensure modal is ready
+    }
 
     // Initialize DataTable
     if ($.fn.DataTable.isDataTable('#orgs-datatable')) {
@@ -132,9 +155,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             allProducts = Array.isArray(data) ? data : (data.products || data.data || []);
+            console.log('Loaded products:', allProducts); // Debugging
             
             // Populate select options
-            const options = allProducts.map(p => `<option value="${p.id}">${p.product_name} (${p.product_code})</option>`).join('');
+            const options = allProducts.map(p => {
+                const id = getProductId(p);
+                 const name = p.product_name || p.name || 'Unknown Product';
+                 const code = p.product_code ? ` (${p.product_code})` : '';
+                 return (id !== null && id !== undefined) ? `<option value="${id}">${name}${code}</option>` : '';
+             }).join('');
             $('#org_products').html(options);
             $('#edit_org_products').html(options);
             
@@ -182,10 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             table.clear().rows.add(allOrgs).draw();
             
             // Update stats
-            const countEl = document.getElementById('showingCount');
-            const totalEl = document.getElementById('totalCount');
-            if (countEl) countEl.textContent = allOrgs.length;
-            if (totalEl) totalEl.textContent = orgs.length;
+            updateStats(allOrgs);
             
         } catch (error) {
             console.error('Error loading organizations:', error);
@@ -231,6 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
             product_ids: productIds, // Validation requirement
             status: document.getElementById('is_active').checked ? 'active' : 'inactive'
         };
+
+        console.log('Submitting Add Organization payload:', payload); // Debugging
+        console.log('Selected productIds:', productIds); // Debugging
 
         try {
             const response = await fetch(ORG_API + '/add_organization', {
@@ -296,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // If the API returns product objects, map to IDs.
             let productIds = [];
             if (org.product_ids) productIds = org.product_ids;
-            else if (org.products) productIds = org.products.map(p => p.id || p.product_id);
+            else if (org.products) productIds = org.products.map(p => getProductId(p)).filter(id => id !== null && id !== undefined);
             
             $('#edit_org_products').val(productIds).trigger('change');
 
@@ -427,8 +456,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (org.product_ids && org.product_ids.length > 0) {
                  // Map IDs to names if possible, otherwise just IDs
                  const productNames = org.product_ids.map(id => {
-                     const p = allProducts.find(ap => ap.id == id); // loose equality for string/int match
-                     return p ? p.product_name : `Product ${id}`;
+                     const p = allProducts.find(ap => getProductId(ap) == id); // loose equality for string/int match
+                     return p ? (p.product_name || p.name) : `Product ${id}`;
                  });
                  productsList.innerHTML = productNames.map(name => `<span class="badge bg-light text-dark me-1 mb-1 border">${name}</span>`).join('');
                  document.getElementById('view_meta_product_count').textContent = org.product_ids.length;
@@ -442,6 +471,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 bootstrap.Modal.getInstance(document.getElementById('viewOrgModal')).hide();
                 editOrg(orgId);
             };
+
+            const assignBtn = document.getElementById('assignProductsBtn');
+            if (assignBtn) {
+                assignBtn.onclick = () => {
+                    bootstrap.Modal.getInstance(document.getElementById('viewOrgModal')).hide();
+                    openAssignProductsModal(orgId, org.org_name, org.product_ids);
+                };
+            }
             
             new bootstrap.Modal(document.getElementById('viewOrgModal')).show();
 
@@ -450,6 +487,110 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('Failed to load organization details', 'error');
         }
     };
+
+    function openAssignProductsModal(orgId, orgName, currentProductIds) {
+        document.getElementById('assign_org_id').value = orgId;
+        document.getElementById('assign_org_name').textContent = orgName;
+        
+        const listContainer = document.getElementById('productsList');
+        listContainer.innerHTML = '';
+        
+        allProducts.forEach(p => {
+            const id = getProductId(p);
+            if (!id) return;
+            
+            const name = p.product_name || p.name || 'Unknown';
+            const isChecked = currentProductIds && currentProductIds.includes(id) ? 'checked' : '';
+            
+            const div = document.createElement('div');
+            div.className = 'form-check mb-2';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${id}" id="prod_assign_${id}" ${isChecked}>
+                <label class="form-check-label" for="prod_assign_${id}">
+                    ${name} <small class="text-muted">${p.product_code || ''}</small>
+                </label>
+            `;
+            listContainer.appendChild(div);
+        });
+        
+        new bootstrap.Modal(document.getElementById('assignProductsModal')).show();
+    }
+
+    const submitAssignBtn = document.getElementById('submitAssignProducts');
+    if (submitAssignBtn) {
+        submitAssignBtn.addEventListener('click', async function() {
+            const orgId = document.getElementById('assign_org_id').value;
+            const checkboxes = document.querySelectorAll('#productsList input[type="checkbox"]:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Validate selected IDs to ensure no "undefined" slips through (double check)
+            if (selectedIds.some(id => String(id) === 'undefined')) {
+                console.warn('submitAssignProducts: Found undefined ID in selection:', selectedIds);
+                showNotification('Invalid product selection detected', 'error');
+                return;
+            }
+
+            try {
+                // Fetch latest org details first to preserve other fields
+                const response = await fetch(ORG_API + '/get_organization_by_id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ org_id: orgId })
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch org details');
+                
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    // Try finding in local list
+                    data = allOrgs.find(o => o.org_id === orgId);
+                }
+                
+                const org = Array.isArray(data) ? data[0] : (data.organization || data);
+                if (!org) throw new Error('Organization not found');
+
+                const payload = {
+                    org_id: org.org_id || orgId,
+                    org_name: org.org_name,
+                    org_code: org.org_code,
+                    email: org.email || org.org_email,
+                    phone: org.phone || org.org_phone,
+                    address: org.address || org.org_address,
+                    city: org.city || org.org_city,
+                    country: org.country || org.org_country,
+                    subscription_type: org.subscription_type,
+                    is_system_owner: org.is_system_owner === true || org.is_system_owner === 'true',
+                    subscription_start_date: org.subscription_start_date,
+                    subscription_end_date: org.subscription_end_date,
+                    status: org.status || (org.is_active ? 'active' : 'inactive'),
+                    product_ids: selectedIds
+                };
+
+                console.log('Submitting Assign Products payload:', payload);
+
+                const updateResponse = await fetch(ORG_API + '/update_organization', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (updateResponse.ok) {
+                    showNotification('Products assigned successfully', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('assignProductsModal')).hide();
+                    loadOrgs();
+                } else {
+                    const err = await updateResponse.json();
+                    showNotification(err.message || 'Failed to update assignments', 'error');
+                }
+            } catch (error) {
+                console.error('Error assigning products:', error);
+                showNotification('Error assigning products', 'error');
+            }
+        });
+    }
 
     function showNotification(message, type) {
         if (window.Swal) {
@@ -464,6 +605,74 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             alert(message);
         }
+    }
+
+    function updateStats(orgs) {
+        let total = orgs.length;
+        let active = 0;
+        let blocked = 0;
+        let productAssignments = 0;
+
+        orgs.forEach(org => {
+            // Status check
+            // API returns is_active (boolean), but sometimes it might be string or status field
+            const isActive = org.is_active === true || org.is_active === 'true' || org.is_active === 1 || org.status === 'active';
+            if (isActive) active++;
+            else blocked++;
+
+            // Product count
+            // Check for product_ids (array of IDs) or products (array of objects)
+            if (org.product_ids && Array.isArray(org.product_ids)) {
+                productAssignments += org.product_ids.length;
+            } else if (org.products && Array.isArray(org.products)) {
+                productAssignments += org.products.length;
+            }
+        });
+
+        // Debugging stats
+        console.log('Stats calculated:', { total, active, blocked, productAssignments });
+
+        // Update DOM elements safely
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) {
+                // If animateValue fails or is not desired, direct assignment works too
+                // el.textContent = val;
+                animateValue(id, parseInt(el.textContent) || 0, val);
+            } else {
+                console.warn('Stat element not found:', id);
+            }
+        };
+
+        setVal('org_total', total);
+        setVal('org_active', active);
+        setVal('org_blocked', blocked);
+        setVal('total_products', productAssignments);
+    }
+
+    function animateValue(id, start, end) {
+        if (start === end) return;
+        const range = end - start;
+        const duration = 1000;
+        let startTime = null;
+        
+        const obj = document.getElementById(id);
+        if (!obj) {
+            console.error('animateValue: Element not found:', id);
+            return;
+        }
+
+        function step(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            obj.textContent = Math.floor(progress * range + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                obj.textContent = end;
+            }
+        }
+        window.requestAnimationFrame(step);
     }
 
     // Initial load

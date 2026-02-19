@@ -79,7 +79,7 @@ public class UserRest {
     }
 
     // Get user by ID
-    @GetMapping("/{userId}")
+    @GetMapping("/{userId:\\d+}")
     public ResponseEntity<?> getUserById(@PathVariable Long userId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
         //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
@@ -102,6 +102,103 @@ public class UserRest {
         e.printStackTrace();
         return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch user: " + e.getMessage() + "\"}");
     }
+    }
+
+    @PostMapping("/actions/set_force_password_change")
+    public ResponseEntity<?> setForcePasswordChange(@RequestBody Map<String, Object> requestData, HttpSession session) {
+        logger.info("Received request for setForcePasswordChange");
+        // Authentication Guideline: Ensure user is authenticated before processing
+        // Basic session check (replace with comprehensive security/auth utility when available)
+        if (session.getAttribute("userInfo") == null) {
+             return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
+        }
+
+        try {
+            if (!requestData.containsKey("user_id")) {
+                return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing user_id.\"}");
+            }
+            
+            Object userIdObj = requestData.get("user_id");
+            Long userId;
+            if (userIdObj instanceof Integer) {
+                userId = ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof String) {
+                userId = Long.parseLong((String) userIdObj);
+            } else if (userIdObj instanceof Long) {
+                userId = (Long) userIdObj;
+            } else {
+                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format.\"}");
+            }
+
+            JSONObject requestJson = new JSONObject();
+            requestJson.put("user_id", userId);
+            requestJson.put("expire_pass", requestData.getOrDefault("expire_pass", true)); // Default to true if not specified, but usually it's a toggle
+
+            webServiceResponse = userService.setForcePasswordChange(
+                 wsURLConfig.getWeb_service_url_ser(), 
+                wsURLConfig.getWeb_service_url_ser_api_key(), 
+                requestJson.toString()
+            );
+
+            return ResponseEntity.ok(webServiceResponse);
+
+        } catch (NumberFormatException e) {
+             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
+        } catch (Exception e) {
+            logger.severe("Error setting force password change: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to set force password change: " + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/actions/set_default_password")
+    public ResponseEntity<?> setDefaultPassword(@RequestBody Map<String, Object> requestData, HttpSession session) {
+        logger.info("Received request for setDefaultPassword");
+        // Authentication Guideline: Ensure user is authenticated before processing
+        // Basic session check (replace with comprehensive security/auth utility when available)
+        if (session.getAttribute("userInfo") == null) {
+             return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
+        }
+
+        try {
+            if (!requestData.containsKey("user_id")) {
+                return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing user_id.\"}");
+            }
+            if (!requestData.containsKey("password")) {
+                return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing password.\"}");
+            }
+            
+            Object userIdObj = requestData.get("user_id");
+            Long userId;
+            if (userIdObj instanceof Integer) {
+                userId = ((Integer) userIdObj).longValue();
+            } else if (userIdObj instanceof String) {
+                userId = Long.parseLong((String) userIdObj);
+            } else if (userIdObj instanceof Long) {
+                userId = (Long) userIdObj;
+            } else {
+                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format.\"}");
+            }
+            
+            JSONObject requestJson = new JSONObject();
+            requestJson.put("user_id", userId);
+            requestJson.put("password", requestData.get("password"));
+
+            webServiceResponse = userService.setDefaultPassword(
+                 wsURLConfig.getWeb_service_url_ser(), 
+                wsURLConfig.getWeb_service_url_ser_api_key(), 
+                requestJson.toString()
+            );
+
+            return ResponseEntity.ok(webServiceResponse);
+
+        } catch (NumberFormatException e) {
+             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
+        } catch (Exception e) {
+            logger.severe("Error setting default password: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to set default password: " + e.getMessage() + "\"}");
+        }
     }
 
     @PostMapping("/profile")
