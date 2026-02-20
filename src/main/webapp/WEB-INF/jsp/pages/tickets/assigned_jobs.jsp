@@ -1,112 +1,406 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/dashboard.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/assets/libs/apexcharts/apexcharts.css">
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/tickets.css">
-<main class="app-wrapper">
-    <div class="container-fluid">
 
-        <!-- Header -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
+<main class="app-wrapper">
+    <div class="analytics-container">
+        <style>
+            /* Analytics Page Styles */
+            .analytics-container {
+                padding: 2rem;
+                max-width: 100%;
+            }
+            
+            @media (max-width: 768px) {
+                .analytics-container {
+                    padding: 1rem;
+                }
+            }
+            
+            /* Header Section */
+            .analytics-header {
+                background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+                border-radius: 24px;
+                padding: 2.5rem;
+                margin-bottom: 2rem;
+                position: relative;
+                overflow: hidden;
+                border: none;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            }
+            
+            .header-background {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-image: 
+                    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+                z-index: 1;
+            }
+            
+            .header-content {
+                position: relative;
+                z-index: 2;
+            }
+            
+            .header-title {
+                font-size: 2.25rem;
+                font-weight: 800;
+                color: white;
+                margin-bottom: 0.5rem;
+            }
+            
+            .header-subtitle {
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 1.125rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .header-badges {
+                display: flex;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+            
+            .header-badge {
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50px;
+                padding: 0.75rem 1.25rem;
+                color: white;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-weight: 500;
+            }
+            
+            .header-info-card {
+                background: rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 16px;
+                padding: 1.5rem;
+                color: white;
+            }
+            
+            /* Stats Styling */
+            .stat-value-analytics {
+                font-size: 2.75rem;
+                font-weight: 800;
+                line-height: 1;
+                margin-bottom: 0.5rem;
+                color: var(--analytics-dark);
+                font-feature-settings: "tnum";
+                font-variant-numeric: tabular-nums;
+            }
+            
+            /* Recent Tickets Table */
+            .recent-tickets-analytics {
+                border-radius: 20px;
+                overflow: hidden;
+                background: white;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            }
+            
+            .content-card {
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+                border: 1px solid var(--border-color);
+                height: 100%;
+            }
+            
+            .recent-tickets-header {
+                padding: 1.5rem;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+            
+            .chart-title-analytics {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--analytics-dark);
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin: 0;
+            }
+        </style>
+
+        <!-- Header Section -->
+        <header class="analytics-header">
+            <div class="header-background"></div>
             <div class="header-content">
-                <h1 class="page-title mb-2">Assigned Jobs</h1>
-                <p class="page-subtitle text-muted mb-0">Track and manage jobs assigned to your team or department</p>
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h1 class="header-title">Hello <c:out value="${not empty userName ? userName : (not empty userInfo.name ? userInfo.name : (not empty userInfo.username ? userInfo.username : 'User'))}" /></h1>
+                        <p class="header-subtitle">Track and manage jobs assigned to your team or department</p>
+                        <div class="header-badges">
+                            <div class="header-badge">
+                                <i class="bi bi-briefcase"></i>
+                                Jobs Dashboard
+                            </div>
+                            <div class="header-badge">
+                                <i class="bi bi-person-badge"></i>
+                                Assigned to Me
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 mt-4 mt-lg-0">
+                        <div class="header-info-card">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-circle fs-4"></i>
+                                    <div>
+                                        <div class="small opacity-75">Logged In As</div>
+                                        <div class="fw-bold"><c:out value="${not empty userInfo.full_name ? userInfo.full_name : (not empty userName ? userName : (not empty userInfo.name ? userInfo.name : (not empty userInfo.username ? userInfo.username : 'User')))}" /></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2 mt-3">
+                                <button type="button" class="btn btn-light btn-sm d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#createTicketModal">
+                                    <i class="bi bi-plus-circle text-primary"></i>
+                                    <span class="text-primary fw-bold">Create Ticket</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="header-actions">
-                <button type="button" class="btn btn-primary btn-lg d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#createTicketModal">
-                    <i class="bi bi-plus-circle"></i>
-                    <span>Create Ticket</span>
-                </button>
-                <button type="button" class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2" id="refreshTicketsBtn">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    <span>Refresh Jobs</span>
-                </button>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-briefcase"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="totalCount">0</div>
+                        <div class="stat-label">Total Jobs</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-primary" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-play-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="status_open">0</div>
+                        <div class="stat-label">Open</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-lightning-charge"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="status_in_progress">0</div>
+                        <div class="stat-label">In Progress</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-info" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-pause-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="status_on_hold">0</div>
+                        <div class="stat-label">On Hold</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-warning" style="width: 40%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="status_resolved">0</div>
+                        <div class="stat-label">Resolved</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-primary" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value-analytics" id="overdue_tickets">0</div>
+                        <div class="stat-label">Overdue</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-danger" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Stats Cards Row -->
+        <!-- Charts Grid -->
         <div class="row g-3 mb-4">
-            <div class="col-xl-3 col-lg-6">
-                <div class="stat-card d-flex align-items-start">
-                    <div class="stat-icon" style="color: #3b82f6;">
-                        <i class="bi bi-briefcase"></i>
+            <!-- Job Trends -->
+            <div class="col-xl-8">
+                <div class="chart-card content-card">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Job Trends Over Time
+                        </h4>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" data-range="week">Week</button>
+                            <button type="button" class="btn btn-outline-secondary" data-range="month">Month</button>
+                        </div>
                     </div>
-                    <div class="stat-content ms-3">
-                        <div class="stat-number" id="totalCount">0</div>
-                        <div class="stat-label">Total Jobs</div>
+                    <div class="chart-card-body">
+                        <div id="ticketTrendChart" style="height: 320px;"></div>
                     </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-6">
-                <div class="stat-card d-flex align-items-start">
-                    <div class="stat-icon" style="color: #10b981;">
-                        <i class="bi bi-play-circle"></i>
-                    </div>
-                    <div class="stat-content ms-3">
-                        <div class="stat-number" id="status_in_progress">0</div>
-                        <div class="stat-label">Active</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-3 col-lg-6">
-                <div class="stat-card d-flex align-items-start">
-                    <div class="stat-icon" style="color: #f59e0b;">
-                        <i class="bi bi-pause-circle"></i>
-                    </div>
-                    <div class="stat-content ms-3">
-                        <div class="stat-number" id="status_on_hold">0</div>
-                        <div class="stat-label">On Hold</div>
+                    <div class="chart-card-footer">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Showing job volume trends over time</small>
+                            <small class="text-muted">Updated: <span id="trendChartUpdate">just now</span></small>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-xl-3 col-lg-6">
-                <div class="stat-card d-flex align-items-start">
-                    <div class="stat-icon" style="color: #8b5cf6;">
-                        <i class="bi bi-check-circle"></i>
+            
+            <!-- Status Distribution -->
+            <div class="col-xl-4">
+                <div class="chart-card content-card">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-pie-chart me-2"></i>
+                            Status Distribution
+                        </h4>
                     </div>
-                    <div class="stat-content ms-3">
-                        <div class="stat-number" id="status_resolved">0</div>
-                        <div class="stat-label">Completed</div>
+                    <div class="chart-card-body">
+                        <div id="statusPieChart" style="height: 320px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Priority Breakdown -->
+            <div class="col-xl-6">
+                <div class="chart-card content-card">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-bar-chart me-2"></i>
+                            Priority Breakdown
+                        </h4>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="priorityChart" style="height: 320px;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Distribution -->
+            <div class="col-xl-6">
+                <div class="chart-card content-card">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-grid-3x3 me-2"></i>
+                            Category Distribution
+                        </h4>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="categoryChart" style="height: 320px;"></div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Main Content Card -->
-        <div class="card content-card">
-            <div class="card-header d-flex align-items-center justify-content-between bg-transparent border-bottom">
-                <h4 class="card-title mb-0">Assigned Jobs Overview</h4>
-                <div class="d-flex gap-2">
-                    <div class="search-box">
+        <div class="recent-tickets-analytics content-card">
+            <div class="recent-tickets-header">
+                <div class="d-flex align-items-center gap-3">
+                    <h3 class="chart-title-analytics mb-0">
+                        <i class="bi bi-list-task me-2"></i>
+                        Assigned Jobs List
+                    </h3>
+                    <div class="search-box ms-3">
                         <i class="bi bi-search"></i>
-                        <input type="text" id="jobs_search" class="form-control form-control-sm" placeholder="Search jobs...">
+                        <input type="text" id="tickets_search" class="form-control form-control-sm" placeholder="Search jobs...">
                     </div>
                 </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="tickets-datatable" class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th style="width: 40px;">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
-                                    </div>
-                                </th>
-                                <th>Ticket ID</th>
-                                <th>Subject</th>
-                                <th>Type</th>
-                                <th>Priority</th>
-                                <th>Status</th>
-                                <th>Assigned To</th>
-                                <th>Created</th>
-                                <th>Due Date</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data populated by JS -->
-                        </tbody>
-                    </table>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2" id="refreshTicketsBtn" onclick="loadTickets()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                        <span>Refresh</span>
+                    </button>
                 </div>
+            </div>
+            <div class="table-responsive">
+                <table id="tickets-datatable" class="table table-hover mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="width: 40px;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                </div>
+                            </th>
+                            <th>Ticket ID</th>
+                            <th>Subject</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Created</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data populated by JS -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -489,6 +783,7 @@
 <script>
     const TICKET_API_BASE = "${pageContext.request.contextPath}/api/tickets";
     const ORG_API = "${pageContext.request.contextPath}/v1/organization_service/get_all_organizations";
-    const CURRENT_USER_ID = "${userInfo.unique_id}";
+    const CURRENT_USER_ID = "${userInfo.id}";
 </script>
-<script src="${pageContext.request.contextPath}/assets/js/tickets.js"></script>
+<script src="${pageContext.request.contextPath}/assets/libs/apexcharts/apexcharts.min.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/tickets.js?v=<%=System.currentTimeMillis()%>"></script>

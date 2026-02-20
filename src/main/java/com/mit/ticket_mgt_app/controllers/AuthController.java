@@ -121,11 +121,24 @@ public class AuthController {
     public String resetPasswordWithDefault(@RequestBody Map<String, Object> requestData) {
         try {
             JSONObject requestJson = new JSONObject(requestData);
+
+            // Map default_password to standard change_password fields to cover various
+            // potential parameter names
+            if (requestData.containsKey("default_password")) {
+                Object defaultPass = requestData.get("default_password");
+                requestJson.put("old_password", defaultPass);
+                requestJson.put("password", defaultPass);
+                requestJson.put("current_password", defaultPass);
+                // Also map to token as some reset flows use the temporary password as a token
+                if (!requestJson.has("token")) {
+                    requestJson.put("token", defaultPass);
+                }
+            }
+
             String webServiceResponse = userService.resetPasswordWithDefault(
-                wsURLConfig.getWeb_service_url_ser(),
-                wsURLConfig.getWeb_service_url_ser_api_key(),
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
             return webServiceResponse;
         } catch (Exception e) {
             e.printStackTrace();
@@ -257,10 +270,11 @@ public class AuthController {
             // Check if password change is required
             boolean forceToChangePassword = resData.optBoolean("force_to_change_password", false);
             if (forceToChangePassword) {
-                 model.addAttribute("forceChangePassword", true);
-                 model.addAttribute("userId", resData.getString("unique_id"));
-                 model.addAttribute("content", "../auth/login.jsp");
-                 return "layouts/guest";
+                model.addAttribute("forceChangePassword", true);
+                // The external service explicitly requires UUID for password reset actions
+                model.addAttribute("userId", resData.getString("unique_id"));
+                model.addAttribute("content", "../auth/login.jsp");
+                return "layouts/guest";
             }
 
             System.out.println(resData.getString("pin"));

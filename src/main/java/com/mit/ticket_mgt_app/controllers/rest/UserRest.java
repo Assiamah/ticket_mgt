@@ -20,7 +20,6 @@ import com.mit.ticket_mgt_app.config.WebServiceURLConfig;
 import com.mit.ticket_mgt_app.services.MenuService;
 import com.mit.ticket_mgt_app.services.UserService;
 
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -53,9 +52,10 @@ public class UserRest {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) String search) {
-        
+
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -65,16 +65,17 @@ public class UserRest {
             String currentUserUniqueId = userInfo != null ? (String) userInfo.get("unique_id") : null;
 
             // Call service to get users with pagination and search
-            webServiceResponse = userService.loadUsers( wsURLConfig.getWeb_service_url_ser(), 
-                                                   wsURLConfig.getWeb_service_url_ser_api_key(), 
-                                                   page, limit, search, currentUserUniqueId);
-            
+            webServiceResponse = userService.loadUsers(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    page, limit, search, currentUserUniqueId);
+
             return ResponseEntity.ok(webServiceResponse);
-            
+
         } catch (Exception e) {
             logger.severe("Error fetching users: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch users: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch users: " + e.getMessage() + "\"}");
         }
     }
 
@@ -82,7 +83,8 @@ public class UserRest {
     @GetMapping("/{userId:\\d+}")
     public ResponseEntity<?> getUserById(@PathVariable Long userId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -90,64 +92,62 @@ public class UserRest {
             requestJson.put("user_id", userId);
 
             webServiceResponse = userService.getUserById(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
-        return ResponseEntity.ok(webServiceResponse);
+            return ResponseEntity.ok(webServiceResponse);
 
-    } catch (Exception e) {
-        logger.severe("Error fetching user: " + e.getMessage());
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch user: " + e.getMessage() + "\"}");
-    }
+        } catch (Exception e) {
+            logger.severe("Error fetching user: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch user: " + e.getMessage() + "\"}");
+        }
     }
 
     @PostMapping("/actions/set_force_password_change")
     public ResponseEntity<?> setForcePasswordChange(@RequestBody Map<String, Object> requestData, HttpSession session) {
         logger.info("Received request for setForcePasswordChange");
         // Authentication Guideline: Ensure user is authenticated before processing
-        // Basic session check (replace with comprehensive security/auth utility when available)
+        // Basic session check (replace with comprehensive security/auth utility when
+        // available)
         if (session.getAttribute("userInfo") == null) {
-             return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
+            return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
         }
 
         try {
             if (!requestData.containsKey("user_id")) {
                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing user_id.\"}");
             }
-            
+
             Object userIdObj = requestData.get("user_id");
-            Long userId;
-            if (userIdObj instanceof Integer) {
-                userId = ((Integer) userIdObj).longValue();
-            } else if (userIdObj instanceof String) {
-                userId = Long.parseLong((String) userIdObj);
-            } else if (userIdObj instanceof Long) {
-                userId = (Long) userIdObj;
-            } else {
-                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format.\"}");
-            }
+            String userId = String.valueOf(userIdObj);
 
             JSONObject requestJson = new JSONObject();
             requestJson.put("user_id", userId);
-            requestJson.put("expire_pass", requestData.getOrDefault("expire_pass", true)); // Default to true if not specified, but usually it's a toggle
+            requestJson.put("expire_pass", requestData.getOrDefault("expire_pass", true)); // Default to true if not
+                                                                                           // specified, but usually
+                                                                                           // it's a toggle
+
+            logger.info("Sending setForcePasswordChange request: " + requestJson.toString());
 
             webServiceResponse = userService.setForcePasswordChange(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (NumberFormatException e) {
-             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest()
+                    .body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
         } catch (Exception e) {
             logger.severe("Error setting force password change: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to set force password change: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to set force password change: "
+                            + e.getMessage() + "\"}");
         }
     }
 
@@ -155,56 +155,89 @@ public class UserRest {
     public ResponseEntity<?> setDefaultPassword(@RequestBody Map<String, Object> requestData, HttpSession session) {
         logger.info("Received request for setDefaultPassword");
         // Authentication Guideline: Ensure user is authenticated before processing
-        // Basic session check (replace with comprehensive security/auth utility when available)
+        // Basic session check (replace with comprehensive security/auth utility when
+        // available)
         if (session.getAttribute("userInfo") == null) {
-             return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
+            return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID\"}");
         }
 
         try {
             if (!requestData.containsKey("user_id")) {
                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing user_id.\"}");
             }
-            if (!requestData.containsKey("password")) {
+            if (!requestData.containsKey("default_password")) {
                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Missing password.\"}");
             }
-            
+
             Object userIdObj = requestData.get("user_id");
-            Long userId;
-            if (userIdObj instanceof Integer) {
-                userId = ((Integer) userIdObj).longValue();
-            } else if (userIdObj instanceof String) {
-                userId = Long.parseLong((String) userIdObj);
-            } else if (userIdObj instanceof Long) {
-                userId = (Long) userIdObj;
-            } else {
-                 return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format.\"}");
-            }
-            
+            String userId = String.valueOf(userIdObj);
+
+            // Reverted UUID lookup logic as per request to pass the ID directly
+            /*
+             * // Fetch user UUID if numeric ID provided
+             * if (userId.matches("\\d+")) {
+             * try {
+             * JSONObject lookupJson = new JSONObject();
+             * lookupJson.put("user_id", Long.parseLong(userId));
+             * logger.info("Looking up UUID for numeric user_id: " + userId);
+             * String userResp = userService.getUserById(
+             * wsURLConfig.getWeb_service_url_ser(),
+             * wsURLConfig.getWeb_service_url_ser_api_key(),
+             * lookupJson.toString());
+             * JSONObject userObj = new JSONObject(userResp);
+             * // Handle wrapper if present
+             * if (userObj.has("user"))
+             * userObj = userObj.getJSONObject("user");
+             * else if (userObj.has("data"))
+             * userObj = userObj.getJSONObject("data");
+             * 
+             * if (userObj.has("unique_id")) {
+             * String uuid = userObj.getString("unique_id");
+             * if (uuid != null && !uuid.isEmpty()) {
+             * userId = uuid;
+             * logger.info("Found UUID: " + userId);
+             * }
+             * } else {
+             * logger.warning("unique_id not found in user response: " +
+             * userObj.toString());
+             * }
+             * } catch (Exception e) {
+             * logger.warning("Could not lookup UUID for user_id " + userId + ": " +
+             * e.getMessage());
+             * // Continue with original ID if lookup fails
+             * }
+             * }
+             */
+
             JSONObject requestJson = new JSONObject();
             requestJson.put("user_id", userId);
-            requestJson.put("password", requestData.get("password"));
+            requestJson.put("default_password", requestData.get("default_password"));
+
+            logger.info("Sending setDefaultPassword request: " + requestJson.toString());
 
             webServiceResponse = userService.setDefaultPassword(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (NumberFormatException e) {
-             return ResponseEntity.badRequest().body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest()
+                    .body("{\"status\": \"error\", \"message\": \"Invalid user_id format: " + e.getMessage() + "\"}");
         } catch (Exception e) {
             logger.severe("Error setting default password: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to set default password: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to set default password: " + e.getMessage() + "\"}");
         }
     }
 
     @PostMapping("/profile")
     public ResponseEntity<?> getUserProfile(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -216,17 +249,17 @@ public class UserRest {
             requestJson.put("user_id", userId);
 
             webServiceResponse = userService.getUserProfile(
-                 wsURLConfig.getWeb_service_url_ser(),
-                wsURLConfig.getWeb_service_url_ser_api_key(),
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (Exception e) {
             logger.severe("Error fetching user profile: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch user profile: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to fetch user profile: " + e.getMessage() + "\"}");
         }
     }
 
@@ -234,21 +267,22 @@ public class UserRest {
     @GetMapping("/menus")
     public ResponseEntity<?> getAllMenus(HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
             webServiceResponse = menuService.getMenus(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (Exception e) {
             logger.severe("Error fetching menus: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch menus: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500)
+                    .body("{\"status\": \"error\", \"message\": \"Failed to fetch menus: " + e.getMessage() + "\"}");
         }
     }
 
@@ -256,7 +290,8 @@ public class UserRest {
     @GetMapping("/{userId}/menus")
     public ResponseEntity<?> getUserMenus(@PathVariable Long userId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -264,25 +299,27 @@ public class UserRest {
             requestJson.put("user_id", userId);
 
             webServiceResponse = menuService.getUserMenus(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (Exception e) {
             logger.severe("Error fetching user menus: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to fetch user menus: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to fetch user menus: " + e.getMessage() + "\"}");
         }
     }
 
     // Save user menu assignments
     @PostMapping("/{userId}/menus")
-    public ResponseEntity<?> saveUserMenus(@PathVariable Long userId, @RequestBody Map<String, Object> requestData, HttpSession session) {
+    public ResponseEntity<?> saveUserMenus(@PathVariable Long userId, @RequestBody Map<String, Object> requestData,
+            HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
 
         try {
@@ -301,32 +338,33 @@ public class UserRest {
             }
 
             webServiceResponse = menuService.saveUserMenus(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                requestJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    requestJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
 
         } catch (Exception e) {
             logger.severe("Error saving user menus: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to save user menus: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to save user menus: " + e.getMessage() + "\"}");
         }
     }
 
     @PostMapping
-    public String addUser(HttpSession session, HttpServletRequest request, HttpServletResponse response, @RequestBody Map<String, Object> requestData) {
+    public String addUser(HttpSession session, HttpServletRequest request, HttpServletResponse response,
+            @RequestBody Map<String, Object> requestData) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return "{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}";
+        // return "{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}";
         // }
 
         try {
             requestType = (String) requestData.get("requestType");
-            
+
             if ("addUser".equals(requestType)) {
                 return addUser(session, requestData);
-            } else if("updateUser".equals(requestType)) {
+            } else if ("updateUser".equals(requestType)) {
                 return updateUser(session, requestData);
             } else {
                 return "{\"status\": \"error\", \"message\": \"Invalid request type.\"}";
@@ -349,10 +387,9 @@ public class UserRest {
             System.out.println("userJson: " + userJson);
 
             webServiceResponse = userService.addUser(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                userJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    userJson.toString());
 
             return webServiceResponse;
         } catch (Exception e) {
@@ -374,10 +411,9 @@ public class UserRest {
             System.out.println("userJson: " + userJson);
 
             webServiceResponse = userService.updateUser(
-                 wsURLConfig.getWeb_service_url_ser(), 
-                wsURLConfig.getWeb_service_url_ser_api_key(), 
-                userJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    userJson.toString());
 
             return webServiceResponse;
         } catch (Exception e) {
@@ -390,7 +426,8 @@ public class UserRest {
     @PostMapping("/{userId}/deactivate")
     public ResponseEntity<?> deactivateUser(@PathVariable Long userId, HttpSession session) {
         // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        //     return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\": \"SESSION_INVALID.\"}");
+        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
+        // \"SESSION_INVALID.\"}");
         // }
         try {
             JSONObject userJson = new JSONObject();
@@ -398,16 +435,16 @@ public class UserRest {
             userJson.put("status", "inactive");
 
             webServiceResponse = userService.updateUser(
-                 wsURLConfig.getWeb_service_url_ser(),
-                wsURLConfig.getWeb_service_url_ser_api_key(),
-                userJson.toString()
-            );
+                    wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(),
+                    userJson.toString());
 
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             logger.severe("Error deactivating user: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body("{\"status\": \"error\", \"message\": \"Failed to deactivate user: " + e.getMessage() + "\"}");
+            return ResponseEntity.status(500).body(
+                    "{\"status\": \"error\", \"message\": \"Failed to deactivate user: " + e.getMessage() + "\"}");
         }
     }
 
@@ -425,19 +462,20 @@ public class UserRest {
         if (!userData.containsKey("email") || ((String) userData.get("email")).isEmpty()) {
             return false;
         }
-        // if (!userData.containsKey("password") || ((String) userData.get("password")).isEmpty()) {
-        //     return false;
+        // if (!userData.containsKey("password") || ((String)
+        // userData.get("password")).isEmpty()) {
+        // return false;
         // }
         if (!userData.containsKey("role") || ((String) userData.get("role")).isEmpty()) {
             return false;
         }
-        
+
         // Validate email format
         String email = (String) userData.get("email");
         if (!isValidEmail(email)) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -448,7 +486,7 @@ public class UserRest {
 
     private JSONObject prepareUserJson(Map<String, Object> userData) throws Exception {
         JSONObject userJson = new JSONObject();
-        
+
         // Personal information
         userJson.put("user_id", userData.getOrDefault("user_id", ""));
         userJson.put("org_id", userData.getOrDefault("org_id", ""));
@@ -456,21 +494,21 @@ public class UserRest {
         userJson.put("first_name", userData.get("first_name"));
         userJson.put("last_name", userData.get("last_name"));
         userJson.put("middle_name", userData.getOrDefault("middle_name", ""));
-        
+
         // Handle date of birth
         if (userData.containsKey("dob") && userData.get("dob") != null) {
             userJson.put("dob", userData.get("dob"));
         }
-        
+
         userJson.put("gender", userData.getOrDefault("gender", ""));
-        
+
         // Account information
         userJson.put("username", userData.get("username"));
         userJson.put("email", userData.get("email"));
         userJson.put("password", userData.get("password")); // In production, hash this password!
         userJson.put("role", userData.get("role"));
         userJson.put("level", userData.getOrDefault("level", 1));
-        
+
         // Contact information
         userJson.put("country_code", userData.getOrDefault("country_code", ""));
         userJson.put("phone_number", userData.getOrDefault("phone_number", ""));
@@ -479,16 +517,15 @@ public class UserRest {
         userJson.put("city", userData.getOrDefault("city", ""));
         userJson.put("country", userData.getOrDefault("country", ""));
         userJson.put("nationality", userData.getOrDefault("nationality", ""));
-        
+
         // Generate full name
         String fullName = buildFullName(
-            (String) userData.getOrDefault("title", ""),
-            (String) userData.get("first_name"),
-            (String) userData.getOrDefault("middle_name", ""),
-            (String) userData.get("last_name")
-        );
+                (String) userData.getOrDefault("title", ""),
+                (String) userData.get("first_name"),
+                (String) userData.getOrDefault("middle_name", ""),
+                (String) userData.get("last_name"));
         userJson.put("full_name", fullName);
-        
+
         // Security settings
         userJson.put("two_factor_auth", userData.getOrDefault("two_factor_auth", false));
         userJson.put("two_factor_method", userData.getOrDefault("two_factor_method", ""));
@@ -496,16 +533,16 @@ public class UserRest {
         userJson.put("login_approval", userData.getOrDefault("login_approval", false));
         userJson.put("status", userData.getOrDefault("status", "active"));
         userJson.put("expire_pass", userData.getOrDefault("expire_pass", false));
-        
+
         // System fields
         userJson.put("provider", "LOCAL");
-        
+
         return userJson;
     }
 
     private String buildFullName(String title, String firstName, String middleName, String lastName) {
         StringBuilder fullName = new StringBuilder();
-        
+
         if (title != null && !title.isEmpty()) {
             fullName.append(title).append(" ");
         }
@@ -518,7 +555,7 @@ public class UserRest {
         if (lastName != null && !lastName.isEmpty()) {
             fullName.append(lastName);
         }
-        
+
         return fullName.toString().trim();
     }
 }

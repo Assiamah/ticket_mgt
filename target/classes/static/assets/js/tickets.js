@@ -33,6 +33,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getPriorityClass(level) { 
+        if (!level) return 'secondary';
+        
+        // Handle string input
+        if (typeof level === 'string') {
+            const l = level.toLowerCase();
+            if (l === 'high' || l === 'critical') return 'danger';
+            if (l === 'medium') return 'warning';
+            if (l === 'low') return 'info';
+            return 'secondary';
+        }
+        
         switch(parseInt(level)) { 
             case 1: return 'danger'; 
             case 2: return 'warning'; 
@@ -212,9 +223,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Current pathname:', pathname);
         const currentUserId = typeof CURRENT_USER_ID !== 'undefined' ? CURRENT_USER_ID : null;
 
-        // Special handling for Assigned Jobs page
-        if (pathname.includes('assigned_jobs')) {
-            console.log('Detected Assigned Jobs page, fetching from proxy...');
+        // Special handling for Assigned Jobs page and My Tasks page
+        if (pathname.includes('assigned_jobs') || pathname.includes('my_tasks')) {
+            console.log('Detected Assigned Jobs or My Tasks page, fetching from proxy...');
             try {
                 const r = await fetch(TICKET_API + '/my_assigned_tasks', {
                     method: 'POST',
@@ -228,11 +239,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const t = await r.text();
                 const d = safeParseJson(t) || {};
-                console.log('Assigned jobs data:', d);
-                const rows = Array.isArray(d) ? d : (d.tickets || d.data || d.items || d.rows || []);
+                console.log('Assigned jobs raw response:', d);
+                
+                // Robustly find the array of tasks
+                let rows = [];
+                if (Array.isArray(d)) {
+                    rows = d;
+                } else if (Array.isArray(d.tasks)) {
+                    rows = d.tasks;
+                } else if (Array.isArray(d.tickets)) {
+                    rows = d.tickets;
+                } else if (Array.isArray(d.data)) {
+                    rows = d.data;
+                } else if (d.data && Array.isArray(d.data.tasks)) {
+                    rows = d.data.tasks;
+                } else if (d.data && Array.isArray(d.data.tickets)) {
+                    rows = d.data.tickets;
+                } else if (Array.isArray(d.items)) {
+                    rows = d.items;
+                } else if (Array.isArray(d.rows)) {
+                    rows = d.rows;
+                }
+                
+                console.log('Parsed rows count:', rows ? rows.length : 0);
                 
                 // Ensure rows have assigned_to matching current user so renderTickets doesn't filter them out
                 allRows = Array.isArray(rows) ? rows.map(row => {
+                    // Fix missing assigned_to
                     if (currentUserId && !row.assigned_to && !row.assigned_to_id) {
                         return { ...row, assigned_to: currentUserId };
                     }
@@ -268,19 +301,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const currentUserId = typeof CURRENT_USER_ID !== 'undefined' ? CURRENT_USER_ID : null;
         const pathname = window.location.pathname;
 
+        console.log('renderTickets: allRows length:', allRows.length);
+        console.log('renderTickets: currentUserId:', currentUserId);
+        console.log('renderTickets: pathname:', pathname);
+
         // 1. Context Filtering (My Tasks / Assigned Jobs)
         if (currentUserId) {
-            if (pathname.includes('my_tasks')) {
-                filteredRows = allRows.filter(r => 
-                    String(r.created_by) === String(currentUserId) || 
-                    String(r.assigned_to) === String(currentUserId) ||
-                    String(r.assigned_to_id) === String(currentUserId)
-                );
-            } 
-            // else if (pathname.includes('assigned_jobs')) {
-            //     // API already filters by user, so no need to filter again (avoids ID vs UUID mismatch)
-            //     filteredRows = allRows; 
-            // }
+            if (pathname.includes('my_tasks') || pathname.includes('assigned_jobs')) {
+                // API already filters by user, so no need to filter again
+                filteredRows = allRows;
+                console.log('renderTickets: assigned_jobs/my_tasks detected, skipping user filter. Rows:', filteredRows.length);
+            }
         }
 
         // 2. User Filters
@@ -290,6 +321,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateStart = (document.getElementById('filter_start') || {}).value;
         const dateEnd = (document.getElementById('filter_end') || {}).value;
         const unassignedOnly = (document.getElementById('filter_unassigned') || {}).checked;
+
+        console.log('renderTickets: Filters - search:', searchVal, 'status:', statusVal, 'priority:', priorityVal);
 
         if (searchVal || statusVal || priorityVal || dateStart || dateEnd || unassignedOnly) {
             const lowerSearch = searchVal.toLowerCase();
@@ -345,6 +378,11 @@ document.addEventListener('DOMContentLoaded', function() {
         })); 
         table.draw(); 
         updateStatusCards(filteredRows); 
+        
+        // Update charts if function exists (for analytics/assigned jobs pages)
+        if (typeof updateAssignedJobsCharts === 'function') {
+            updateAssignedJobsCharts(filteredRows);
+        }
         
         // Update counts
         const countEl = document.getElementById('ticketCount');
@@ -883,6 +921,157 @@ document.addEventListener('DOMContentLoaded', function() {
         orgSelect.addEventListener('change', function() {
             loadProducts(this.value);
         });
+    }
+
+    // --- Chart Rendering for Assigned Jobs / Analytics ---
+    let assignedJobsCharts = {
+        trend: null,
+        status: null,
+        priority: null,
+        category: null
+    };
+
+    function updateAssignedJobsCharts(rows) {
+        if (typeof ApexCharts === 'undefined') return;
+
+        // Helper to group by
+        const groupBy = (array, keyFn) => {
+            return array.reduce((acc, item) => {
+                const key = keyFn(item);
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+        };
+
+        // 1. Trend Chart
+        const trendDataMap = {};
+        rows.forEach(r => {
+            const d = r.created_date || r.created_at;
+            if (d) {
+                try {
+                    const dateStr = new Date(d).toISOString().split('T')[0];
+                    trendDataMap[dateStr] = (trendDataMap[dateStr] || 0) + 1;
+                } catch(e) {}
+            }
+        });
+        const trendData = Object.keys(trendDataMap).sort().map(date => ({
+            x: date,
+            y: trendDataMap[date]
+        }));
+
+        const trendOptions = {
+            series: [{ name: 'Jobs', data: trendData }],
+            chart: { type: 'area', height: 320, toolbar: { show: false } },
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth' },
+            xaxis: { type: 'datetime' },
+            colors: ['#6366f1'],
+            tooltip: { x: { format: 'dd MMM yyyy' } }
+        };
+
+        if (document.querySelector("#ticketTrendChart")) {
+            if (assignedJobsCharts.trend) assignedJobsCharts.trend.updateOptions(trendOptions);
+            else {
+                assignedJobsCharts.trend = new ApexCharts(document.querySelector("#ticketTrendChart"), trendOptions);
+                assignedJobsCharts.trend.render();
+            }
+        }
+
+        // 2. Status Chart
+        const statusMap = groupBy(rows, r => {
+            let s = (r.task_status || r.status_name || 'Open').toLowerCase();
+            if (s === 'assigned') s = 'in progress';
+            // Capitalize first letter of each word
+            return s.replace(/\b\w/g, l => l.toUpperCase()); 
+        });
+        
+        // Ensure standard order/colors
+        const statusOrder = ['Open', 'In Progress', 'On Hold', 'Resolved', 'Closed'];
+        const statusColors = {
+            'Open': '#10b981',       // Success (Green)
+            'In Progress': '#0ea5e9', // Info (Sky Blue) - matches bg-info better than amber
+            'On Hold': '#f59e0b',     // Warning (Amber)
+            'Resolved': '#6366f1',    // Primary (Indigo) - matches theme primary
+            'Closed': '#64748b'       // Secondary (Slate)
+        };
+        
+        // Prepare series and labels based on what exists in data + standard order
+        let statusLabels = [...statusOrder];
+        // Add any non-standard statuses found in data
+        Object.keys(statusMap).forEach(k => {
+            if (!statusLabels.includes(k)) statusLabels.push(k);
+        });
+        
+        const statusSeries = statusLabels.map(l => statusMap[l] || 0);
+        const statusColorsArray = statusLabels.map(l => statusColors[l] || '#cbd5e1');
+
+        const statusOptions = {
+            series: statusSeries,
+            labels: statusLabels,
+            chart: { type: 'donut', height: 320 },
+            colors: statusColorsArray,
+            legend: { position: 'bottom' },
+            dataLabels: { enabled: false }
+        };
+
+        if (document.querySelector("#statusPieChart")) {
+            if (assignedJobsCharts.status) assignedJobsCharts.status.updateOptions(statusOptions);
+            else {
+                assignedJobsCharts.status = new ApexCharts(document.querySelector("#statusPieChart"), statusOptions);
+                assignedJobsCharts.status.render();
+            }
+        }
+
+        // 3. Priority Chart
+        const priorityMap = groupBy(rows, r => {
+            let p = r.task_priority || r.priority_name || 'Normal';
+            return p.charAt(0).toUpperCase() + p.slice(1);
+        });
+        
+        const priorityOptions = {
+            series: [{ name: 'Jobs', data: Object.values(priorityMap) }],
+            chart: { type: 'bar', height: 320, toolbar: { show: false } },
+            xaxis: { categories: Object.keys(priorityMap) },
+            colors: ['#6366f1'],
+            plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
+            legend: { show: false }
+        };
+
+        if (document.querySelector("#priorityChart")) {
+            if (assignedJobsCharts.priority) assignedJobsCharts.priority.updateOptions(priorityOptions);
+            else {
+                assignedJobsCharts.priority = new ApexCharts(document.querySelector("#priorityChart"), priorityOptions);
+                assignedJobsCharts.priority.render();
+            }
+        }
+
+        // 4. Category Chart
+        const categoryMap = groupBy(rows, r => r.category_name || r.task_category || 'Uncategorized');
+        const categoryData = Object.keys(categoryMap).map(k => ({
+            x: k,
+            y: categoryMap[k]
+        }));
+        
+        const categoryOptions = {
+            series: [{ data: categoryData }],
+            chart: { type: 'treemap', height: 320, toolbar: { show: false } },
+            colors: ['#6366f1'],
+            plotOptions: { treemap: { distributed: true, enableShades: true } }
+        };
+        
+        if (document.querySelector("#categoryChart")) {
+            if (assignedJobsCharts.category) assignedJobsCharts.category.updateOptions(categoryOptions);
+            else {
+                assignedJobsCharts.category = new ApexCharts(document.querySelector("#categoryChart"), categoryOptions);
+                assignedJobsCharts.category.render();
+            }
+        }
+        
+        // Update timestamp
+        const updateEl = document.getElementById('trendChartUpdate');
+        if (updateEl) {
+            updateEl.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
     }
 
     // Initial load

@@ -196,9 +196,10 @@ window.showSecurityModal = async function(userId) {
         if (user.user) user = user.user;
         if (user.data) user = user.data;
         
-        if (!user || (!user.id && !user.user_id)) throw new Error('User not found or invalid response format');
+        if (!user || (!user.id && !user.user_id && !user.unique_id)) throw new Error('User not found or invalid response format');
 
         // Populate modal
+        // Prioritize user id (numeric) for security actions as requested
         const currentUserId = user.id || user.user_id;
         document.getElementById('security_user_id').value = currentUserId;
         const fullName = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
@@ -219,10 +220,48 @@ window.showSecurityModal = async function(userId) {
     }
 };
 
-window.useDefaultPassword = function() {
-    const defaultPass = document.getElementById('default_password_display').value;
-    document.getElementById('new_password').value = defaultPass;
-    document.getElementById('confirm_new_password').value = defaultPass;
+window.useDefaultPassword = async function() {
+    const btn = document.querySelector('button[onclick="useDefaultPassword()"]');
+    const originalText = btn.innerHTML;
+    
+    try {
+        const userId = document.getElementById('security_user_id').value;
+        const defaultPass = document.getElementById('default_password_display').value;
+        
+        if (!userId) {
+            showToast("User ID is missing", "error");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Applying...';
+
+        const contextPath = window.CONTEXT_PATH || '';
+        const response = await fetch(`${contextPath}/api/users/actions/set_default_password?t=${new Date().getTime()}`, {
+            method: 'POST',
+            cache: 'no-store',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ user_id: userId, default_password: defaultPass })
+        });
+        
+        if (!response.ok) {
+             const errorData = await response.json().catch(() => ({}));
+             throw new Error(errorData.message || `Server error: ${response.status} ${response.statusText}`);
+        }
+
+        showToast("Default password applied successfully", "success");
+        // Don't update the new/confirm password fields, leave them as is.
+        
+    } catch (error) {
+        console.error('Error applying default password:', error);
+        showToast(error.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 };
 
 window.copyDefaultPassword = function() {
@@ -272,7 +311,12 @@ async function handleSecuritySubmit(event) {
 
         // 2. Update Password if provided
         if (newPassword) {
-            if (newPassword !== confirmPassword) {
+            let passwordToSend = newPassword;
+
+            // Check for "Apply Default Password" special case
+            if (newPassword === 'set password' && confirmPassword === 'confirmed password') {
+                 passwordToSend = document.getElementById('default_password_display').value;
+            } else if (newPassword !== confirmPassword) {
                 throw new Error('Passwords do not match');
             }
             
@@ -283,7 +327,7 @@ async function handleSecuritySubmit(event) {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ user_id: userId, password: newPassword })
+                body: JSON.stringify({ user_id: userId, password: passwordToSend })
             });
             
             if (!passResponse.ok) {

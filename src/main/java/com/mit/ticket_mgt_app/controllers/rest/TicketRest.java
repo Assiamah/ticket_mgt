@@ -59,12 +59,12 @@ public class TicketRest {
 
                 if (userInfo != null) {
                     if (!payload.containsKey("user_id")) {
-                        if (userInfo.get("unique_id") != null) {
-                            payload.put("user_id", userInfo.get("unique_id"));
-                            System.out.println("Added user_id from unique_id: " + userInfo.get("unique_id"));
-                        } else if (userInfo.get("id") != null) {
+                        if (userInfo.get("id") != null) {
                             payload.put("user_id", userInfo.get("id"));
                             System.out.println("Added user_id from id: " + userInfo.get("id"));
+                        } else if (userInfo.get("unique_id") != null) {
+                            payload.put("user_id", userInfo.get("unique_id"));
+                            System.out.println("Added user_id from unique_id: " + userInfo.get("unique_id"));
                         }
                     }
                 } else {
