@@ -184,12 +184,15 @@
             <div class="col-xl-2 col-lg-4 col-md-6">
                 <div class="stat-card">
                     <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <div class="stat-icon" style="color: var(--primary-color);">
                             <i class="bi bi-briefcase"></i>
+                        </div>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 12%
                         </div>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value-analytics" id="totalCount">0</div>
+                        <div class="stat-number" id="totalCount">0</div>
                         <div class="stat-label">Total Jobs</div>
                         <div class="progress mt-2">
                             <div class="progress-bar bg-primary" style="width: 100%"></div>
@@ -201,64 +204,16 @@
             <div class="col-xl-2 col-lg-4 col-md-6">
                 <div class="stat-card">
                     <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <div class="stat-icon" style="color: var(--primary-color);">
                             <i class="bi bi-play-circle"></i>
                         </div>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 8%
+                        </div>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value-analytics" id="status_open">0</div>
+                        <div class="stat-number" id="status_open">0</div>
                         <div class="stat-label">Open</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-success" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-info bg-opacity-10 text-info">
-                            <i class="bi bi-lightning-charge"></i>
-                        </div>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value-analytics" id="status_in_progress">0</div>
-                        <div class="stat-label">In Progress</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-info" style="width: 75%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                            <i class="bi bi-pause-circle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value-analytics" id="status_on_hold">0</div>
-                        <div class="stat-label">On Hold</div>
-                        <div class="progress mt-2">
-                            <div class="progress-bar bg-warning" style="width: 40%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-xl-2 col-lg-4 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                            <i class="bi bi-check-circle"></i>
-                        </div>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value-analytics" id="status_resolved">0</div>
-                        <div class="stat-label">Resolved</div>
                         <div class="progress mt-2">
                             <div class="progress-bar bg-primary" style="width: 100%"></div>
                         </div>
@@ -269,12 +224,75 @@
             <div class="col-xl-2 col-lg-4 col-md-6">
                 <div class="stat-card">
                     <div class="stat-icon-wrapper">
-                        <div class="stat-icon bg-danger bg-opacity-10 text-danger">
-                            <i class="bi bi-exclamation-circle"></i>
+                        <div class="stat-icon" style="color: var(--warning-color);">
+                            <i class="bi bi-lightning-charge"></i>
+                        </div>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 15%
                         </div>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value-analytics" id="overdue_tickets">0</div>
+                        <div class="stat-number" id="status_in_progress">0</div>
+                        <div class="stat-label">In Progress</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-warning" style="width: 75%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--secondary-color);">
+                            <i class="bi bi-pause-circle"></i>
+                        </div>
+                        <div class="stat-trend-badge down">
+                            <i class="bi bi-arrow-down"></i> 3%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_on_hold">0</div>
+                        <div class="stat-label">On Hold</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-secondary" style="width: 40%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--info-color);">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div class="stat-trend-badge up">
+                            <i class="bi bi-arrow-up"></i> 20%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="status_resolved">0</div>
+                        <div class="stat-label">Resolved</div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar bg-info" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-lg-4 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper">
+                        <div class="stat-icon" style="color: var(--danger-color);">
+                            <i class="bi bi-exclamation-circle"></i>
+                        </div>
+                        <div class="stat-trend-badge down">
+                            <i class="bi bi-arrow-down"></i> 5%
+                        </div>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="overdue_tickets">0</div>
                         <div class="stat-label">Overdue</div>
                         <div class="progress mt-2">
                             <div class="progress-bar bg-danger" style="width: 100%"></div>
@@ -286,9 +304,85 @@
 
         <!-- Charts Grid -->
         <div class="row g-3 mb-4">
+            <!-- Status Distribution -->
+            <div class="col-xl-4 col-lg-6">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-pie-chart me-2"></i>
+                            Status Distribution
+                        </h4>
+                        <div class="time-filter">
+                            <select class="form-select form-select-sm">
+                                <option>This Week</option>
+                                <option selected>This Month</option>
+                                <option>This Quarter</option>
+                                <option>This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="statusPieChart" style="height: 320px;"></div>
+                    </div>
+                    <div class="chart-card-footer">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Total: <strong id="ticketCount">0</strong> tickets</small>
+                            <small class="text-muted">Updated: just now</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Priority Breakdown -->
+            <div class="col-xl-4 col-lg-6">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-bar-chart me-2"></i>
+                            Priority Breakdown
+                        </h4>
+                        <div class="time-filter">
+                            <select class="form-select form-select-sm">
+                                <option>This Week</option>
+                                <option selected>This Month</option>
+                                <option>This Quarter</option>
+                                <option>This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="priorityChart" style="height: 320px;"></div>
+                    </div>
+                    <div class="chart-card-footer">
+                        <small class="text-muted">Showing priority distribution across all tickets</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Distribution -->
+            <div class="col-xl-4 col-lg-12">
+                <div class="content-card chart-card mb-0">
+                    <div class="chart-card-header">
+                        <h4 class="chart-card-title">
+                            <i class="bi bi-grid-3x3-gap me-2"></i>
+                            Category Distribution
+                        </h4>
+                    </div>
+                    <div class="chart-card-body">
+                        <div id="categoryChart" style="height: 320px;"></div>
+                    </div>
+                    <div class="chart-card-footer">
+                        <small class="text-muted">Top categories by ticket volume</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Width Charts -->
+        <div class="row g-3 mb-4">
             <!-- Job Trends -->
-            <div class="col-xl-8">
-                <div class="chart-card content-card">
+            <div class="col-xl-12">
+                <div class="content-card chart-card mb-0">
                     <div class="chart-card-header">
                         <h4 class="chart-card-title">
                             <i class="bi bi-graph-up me-2"></i>
@@ -297,6 +391,8 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-outline-secondary active" data-range="week">Week</button>
                             <button type="button" class="btn btn-outline-secondary" data-range="month">Month</button>
+                            <button type="button" class="btn btn-outline-secondary" data-range="quarter">Quarter</button>
+                            <button type="button" class="btn btn-outline-secondary" data-range="year">Year</button>
                         </div>
                     </div>
                     <div class="chart-card-body">
@@ -307,51 +403,6 @@
                             <small class="text-muted">Showing job volume trends over time</small>
                             <small class="text-muted">Updated: <span id="trendChartUpdate">just now</span></small>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Status Distribution -->
-            <div class="col-xl-4">
-                <div class="chart-card content-card">
-                    <div class="chart-card-header">
-                        <h4 class="chart-card-title">
-                            <i class="bi bi-pie-chart me-2"></i>
-                            Status Distribution
-                        </h4>
-                    </div>
-                    <div class="chart-card-body">
-                        <div id="statusPieChart" style="height: 320px;"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Priority Breakdown -->
-            <div class="col-xl-6">
-                <div class="chart-card content-card">
-                    <div class="chart-card-header">
-                        <h4 class="chart-card-title">
-                            <i class="bi bi-bar-chart me-2"></i>
-                            Priority Breakdown
-                        </h4>
-                    </div>
-                    <div class="chart-card-body">
-                        <div id="priorityChart" style="height: 320px;"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Category Distribution -->
-            <div class="col-xl-6">
-                <div class="chart-card content-card">
-                    <div class="chart-card-header">
-                        <h4 class="chart-card-title">
-                            <i class="bi bi-grid-3x3 me-2"></i>
-                            Category Distribution
-                        </h4>
-                    </div>
-                    <div class="chart-card-body">
-                        <div id="categoryChart" style="height: 320px;"></div>
                     </div>
                 </div>
             </div>

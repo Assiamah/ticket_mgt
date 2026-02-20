@@ -532,6 +532,33 @@
             </div>
         </div>
     </div>
+
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modern-modal">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title">Update Ticket Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="updateStatusForm">
+                        <input type="hidden" id="update_status_ticket_id">
+                        <div class="mb-3">
+                            <label for="new_status_select" class="form-label">New Status</label>
+                            <select class="form-select modern-select" id="new_status_select" required>
+                                <option value="">Select Status</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmUpdateStatusBtn">Update Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 <script>
     const TICKET_API_BASE = "${pageContext.request.contextPath}/api/tickets";

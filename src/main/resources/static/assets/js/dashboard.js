@@ -682,7 +682,7 @@
                     series: [{
                         type: 'pie',
                         radius: ['55%', '80%'],
-                        center: ['40%', '50%'],
+                        center: ['50%', '50%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
                             borderRadius: 12,

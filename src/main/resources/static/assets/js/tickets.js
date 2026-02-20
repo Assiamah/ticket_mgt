@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     render: function(_, __, row) { 
                         const userRole = (typeof CURRENT_USER_ROLE !== 'undefined' ? CURRENT_USER_ROLE : '').toLowerCase();
                         const isAdmin = userRole.includes('admin') || userRole.includes('manager') || userRole.includes('owner');
+                        const isMyTasks = window.location.pathname.includes('my_tasks');
                         
                         let actions = '<div class="d-flex gap-2 justify-content-end">';
                         
@@ -180,6 +181,21 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </button>
                         `;
 
+                        if (isMyTasks) {
+                            actions += `
+                                <button type="button" class="btn btn-light-success icon-btn-sm btn-update-status" 
+                                        data-task-id="${row.ticket_id || row.task_id || ''}" 
+                                        title="Update Status">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button type="button" class="btn btn-light-danger icon-btn-sm btn-archive" 
+                                        data-task-id="${row.ticket_id || row.task_id || ''}" 
+                                        title="Archive">
+                                    <i class="bi bi-archive"></i>
+                                </button>
+                            `;
+                        }
+
                         if (isAdmin) {
                             actions += `
                                 <button type="button" class="btn btn-light-primary icon-btn-sm btn-edit" 
@@ -187,6 +203,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="bi bi-pencil"></i>
                                 </button>
                             `;
+                            
+                            if (!isMyTasks) {
+                                actions += `
+                                    <button type="button" class="btn btn-light-danger icon-btn-sm btn-archive" 
+                                            data-task-id="${row.ticket_id || row.task_id || ''}" 
+                                            title="Archive">
+                                        <i class="bi bi-archive"></i>
+                                    </button>
+                                `;
+                            }
                         }
 
                         actions += `</div>`; 
@@ -397,6 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateStatusCards(rows) { 
         const counts = { open: 0, 'in progress': 0, 'on hold': 0, resolved: 0, closed: 0, overdue: 0 }; 
+        const priorities = { critical: 0, high: 0, medium: 0, low: 0 };
         const now = new Date();
 
         (rows || []).forEach(function(r) { 
@@ -404,6 +431,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (s === 'assigned') s = 'in progress'; 
             if (counts.hasOwnProperty(s)) counts[s]++; 
             
+            // Check priority
+            let p = String(r.task_priority || r.priority_name || '').toLowerCase();
+            // Handle variations like "High Priority" -> "high"
+            if (p.includes('critical')) p = 'critical';
+            else if (p.includes('high')) p = 'high';
+            else if (p.includes('medium')) p = 'medium';
+            else if (p.includes('low')) p = 'low';
+            
+            if (priorities.hasOwnProperty(p)) priorities[p]++;
+
             // Check overdue
             const due = r.task_due_date || r.due_date;
             if (due && new Date(due) < now && s !== 'resolved' && s !== 'closed') {
@@ -422,6 +459,11 @@ document.addEventListener('DOMContentLoaded', function() {
         set('status_resolved', counts.resolved); 
         set('status_closed', counts.closed); 
         set('overdue_tickets', counts.overdue);
+
+        set('priority_critical', priorities.critical);
+        set('priority_high', priorities.high);
+        set('priority_medium', priorities.medium);
+        set('priority_low', priorities.low);
     }
 
     // --- Ticket Operations ---
@@ -988,11 +1030,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure standard order/colors
         const statusOrder = ['Open', 'In Progress', 'On Hold', 'Resolved', 'Closed'];
         const statusColors = {
-            'Open': '#10b981',       // Success (Green)
-            'In Progress': '#0ea5e9', // Info (Sky Blue) - matches bg-info better than amber
-            'On Hold': '#f59e0b',     // Warning (Amber)
-            'Resolved': '#6366f1',    // Primary (Indigo) - matches theme primary
-            'Closed': '#64748b'       // Secondary (Slate)
+            'Open': '#10b981',       // Emerald
+            'In Progress': '#f59e0b', // Amber (Warning)
+            'On Hold': '#8b5cf6',     // Violet
+            'Resolved': '#3b82f6',    // Blue (Primary)
+            'Closed': '#ef4444'       // Red (Danger)
         };
         
         // Prepare series and labels based on what exists in data + standard order
@@ -1011,7 +1053,27 @@ document.addEventListener('DOMContentLoaded', function() {
             chart: { type: 'donut', height: 320 },
             colors: statusColorsArray,
             legend: { position: 'bottom' },
-            dataLabels: { enabled: false }
+            dataLabels: { enabled: false },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '70%',
+                        labels: {
+                            show: true,
+                            name: { show: true },
+                            value: { show: true },
+                            total: {
+                                show: true,
+                                showAlways: true,
+                                label: 'Total',
+                                formatter: function (w) {
+                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         };
 
         if (document.querySelector("#statusPieChart")) {
@@ -1025,15 +1087,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // 3. Priority Chart
         const priorityMap = groupBy(rows, r => {
             let p = r.task_priority || r.priority_name || 'Normal';
-            return p.charAt(0).toUpperCase() + p.slice(1);
+            // Capitalize first letter
+            return String(p).charAt(0).toUpperCase() + String(p).slice(1).toLowerCase();
         });
         
+        const priorityKeys = Object.keys(priorityMap);
+        const priorityColorsMap = {
+            'Critical': '#dc2626',
+            'High': '#ef4444',
+            'Medium': '#f59e0b',
+            'Low': '#10b981',
+            'Normal': '#3b82f6'
+        };
+        const priorityColors = priorityKeys.map(p => priorityColorsMap[p] || '#6366f1');
+
         const priorityOptions = {
             series: [{ name: 'Jobs', data: Object.values(priorityMap) }],
             chart: { type: 'bar', height: 320, toolbar: { show: false } },
-            xaxis: { categories: Object.keys(priorityMap) },
-            colors: ['#6366f1'],
-            plotOptions: { bar: { borderRadius: 4, horizontal: true, distributed: true } },
+            xaxis: { categories: priorityKeys },
+            colors: priorityColors,
+            plotOptions: { bar: { borderRadius: 4, horizontal: false, distributed: true } },
             legend: { show: false }
         };
 
@@ -1047,16 +1120,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 4. Category Chart
         const categoryMap = groupBy(rows, r => r.category_name || r.task_category || 'Uncategorized');
-        const categoryData = Object.keys(categoryMap).map(k => ({
-            x: k,
-            y: categoryMap[k]
-        }));
+        const categoryLabels = Object.keys(categoryMap);
+        const categorySeries = categoryLabels.map(k => categoryMap[k]);
         
         const categoryOptions = {
-            series: [{ data: categoryData }],
-            chart: { type: 'treemap', height: 320, toolbar: { show: false } },
-            colors: ['#6366f1'],
-            plotOptions: { treemap: { distributed: true, enableShades: true } }
+            series: categorySeries,
+            labels: categoryLabels,
+            chart: { type: 'donut', height: 320, toolbar: { show: false } },
+            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+            plotOptions: { 
+                pie: { 
+                    donut: { 
+                        size: '65%' 
+                    } 
+                } 
+            },
+            dataLabels: { enabled: true },
+            legend: { position: 'bottom' },
+            stroke: { show: false }
         };
         
         if (document.querySelector("#categoryChart")) {
@@ -1072,6 +1153,177 @@ document.addEventListener('DOMContentLoaded', function() {
         if (updateEl) {
             updateEl.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         }
+    }
+
+    // --- Update Status Operations ---
+    async function openUpdateStatusModal(taskId) {
+        if (!taskId) return;
+        
+        const idInput = document.getElementById('update_status_ticket_id');
+        if(idInput) idInput.value = taskId;
+        
+        // Wait for options to load
+        await loadOptions('/statuses/list', 'new_status_select', 'Select Status', 'status_id', 'name');
+
+        const modalEl = document.getElementById('updateStatusModal');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+    }
+
+    async function confirmUpdateStatus() {
+        const taskId = document.getElementById('update_status_ticket_id').value;
+        const newStatusId = document.getElementById('new_status_select').value;
+        
+        if (!taskId || !newStatusId) {
+            showNotification('Please select a status', 'warning');
+            return;
+        }
+
+        try {
+            // 1. Fetch ticket details
+            const p = new URLSearchParams();
+            p.append('task_id', taskId);
+            
+            const r = await fetch(TICKET_API + '/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: p.toString()
+            });
+            const t = await r.text();
+            const d = safeParseJson(t) || {};
+            const ticket = d.data || d;
+
+            if (!ticket) {
+                showNotification('Failed to load ticket details', 'error');
+                return;
+            }
+
+            // 2. Update with new status
+            const pUpd = new URLSearchParams();
+            pUpd.append('task_id', taskId);
+            pUpd.append('task_subject', ticket.task_subject || ticket.title || '');
+            pUpd.append('task_priority', ticket.priority_id || ticket.priority || '');
+            pUpd.append('task_type', ticket.task_type || '');
+            pUpd.append('task_description', ticket.task_description || ticket.description || '');
+            pUpd.append('task_remarks', ticket.remarks || '');
+            pUpd.append('task_status', newStatusId);
+
+            const rUpd = await fetch(TICKET_API + '/update_tickets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: pUpd.toString()
+            });
+            const tUpd = await rUpd.text();
+            const dUpd = safeParseJson(tUpd) || {};
+
+            if ((dUpd && (dUpd.success === true || dUpd.status === 'Success')) || rUpd.ok) {
+                showNotification('Status updated successfully', 'success');
+                const modalEl = document.getElementById('updateStatusModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+                loadTickets();
+            } else {
+                showNotification((dUpd.message || dUpd.error || 'Failed to update status'), 'error');
+            }
+        } catch (e) {
+            console.error('Error updating status', e);
+            showNotification('Error updating status', 'error');
+        }
+    }
+
+    // --- Archive Operations ---
+    function openArchiveModal(taskId) {
+        if (!taskId) return;
+        
+        const idInput = document.getElementById('archive_task_id');
+        const numSpan = document.getElementById('archive_ticket_number');
+        
+        if (idInput) idInput.value = taskId;
+        if (numSpan) numSpan.textContent = '#' + taskId;
+        
+        const modalEl = document.getElementById('archiveTicketModal');
+        if (modalEl) {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } else if (confirm('Are you sure you want to archive this ticket?')) {
+            archiveTicket(taskId);
+        }
+    }
+
+    async function archiveTicket(taskId) {
+        if (!taskId) taskId = document.getElementById('archive_task_id').value;
+        if (!taskId) return;
+
+        try {
+            const response = await fetch(TICKET_API + '/archive_ticket', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_id: taskId })
+            });
+
+            if (response.ok) {
+                showNotification('Ticket archived successfully', 'success');
+                const modalEl = document.getElementById('archiveTicketModal');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                }
+                loadTickets();
+            } else {
+                showNotification('Failed to archive ticket', 'error');
+            }
+        } catch (e) {
+            console.error('Error archiving ticket', e);
+            showNotification('Error archiving ticket', 'error');
+        }
+    }
+
+    // --- Event Listeners for New Actions ---
+    document.addEventListener('click', function(e) {
+        const updateBtn = e.target.closest('.btn-update-status');
+        if (updateBtn) {
+            openUpdateStatusModal(updateBtn.dataset.taskId);
+            return;
+        }
+
+        const archiveBtn = e.target.closest('.btn-archive');
+        if (archiveBtn) {
+            openArchiveModal(archiveBtn.dataset.taskId);
+            return;
+        }
+    });
+
+    const confirmUpdateStatusBtn = document.getElementById('confirmUpdateStatusBtn');
+    if (confirmUpdateStatusBtn) confirmUpdateStatusBtn.addEventListener('click', confirmUpdateStatus);
+
+    const confirmArchiveBtn = document.getElementById('confirmArchiveBtn');
+    if (confirmArchiveBtn) confirmArchiveBtn.addEventListener('click', () => archiveTicket());
+    
+    // View Modal Actions
+    const changeStatusViewBtn = document.getElementById('changeStatusBtn');
+    if (changeStatusViewBtn) {
+        changeStatusViewBtn.addEventListener('click', function() {
+             const modalEl = document.getElementById('viewTicketModal');
+             if(modalEl && modalEl.dataset.ticketId) {
+                 const modal = bootstrap.Modal.getInstance(modalEl);
+                 if(modal) modal.hide();
+                 openUpdateStatusModal(modalEl.dataset.ticketId);
+             }
+        });
+    }
+
+    const archiveViewBtn = document.getElementById('archiveFromViewBtn');
+    if (archiveViewBtn) {
+        archiveViewBtn.addEventListener('click', function() {
+             const modalEl = document.getElementById('viewTicketModal');
+             if(modalEl && modalEl.dataset.ticketId) {
+                 const modal = bootstrap.Modal.getInstance(modalEl);
+                 if(modal) modal.hide();
+                 openArchiveModal(modalEl.dataset.ticketId);
+             }
+        });
     }
 
     // Initial load
