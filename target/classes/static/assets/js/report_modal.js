@@ -10,6 +10,10 @@ function initReportGeneration() {
     console.warn('[Reports] Report modal element not found!');
     return;
   }
+  
+  if (!document.getElementById('reportPreviewContent')) {
+    console.error('[Reports] Critical: #reportPreviewContent container not found inside modal!');
+  }
 
   // Get globals or defaults
   const CONTEXT_PATH = window.CONTEXT_PATH || '';
@@ -48,6 +52,15 @@ function initReportGeneration() {
         fetchReportData();
     } else {
         console.warn('[Reports] Modal opened but no dates available to fetch data');
+        // Set default dates if missing (last 30 days)
+        if (rStartEl && rEndEl) {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 30);
+            rStartEl.value = start.toISOString().split('T')[0];
+            rEndEl.value = end.toISOString().split('T')[0];
+            fetchReportData();
+        }
     }
   });
 
@@ -199,22 +212,39 @@ function initReportGeneration() {
     try { return JSON.parse(t); } catch (_) { return null; }
   }
 
-  async function fetchReportService(endpoint, params = {}) {
+  async function fetchReportService(endpoint, options = {}) {
     const CONTEXT_PATH = window.CONTEXT_PATH || '';
     let finalUrl = CONTEXT_PATH + endpoint;
     
-    // Build query string
-    const query = Object.entries(params)
-      .filter(([_, v]) => v != null)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-      .join('&');
+    const method = (options.method || 'GET').toUpperCase();
     
-    if (query) {
-      finalUrl += (finalUrl.includes('?') ? '&' : '?') + query;
+    if (method === 'GET' && options.params) {
+        const query = Object.entries(options.params)
+          .filter(([_, v]) => v != null)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+        if (query) finalUrl += (finalUrl.includes('?') ? '&' : '?') + query;
+    }
+
+    const fetchOptions = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(options.headers || {})
+        },
+        ...options
+    };
+    
+    delete fetchOptions.params;
+
+    if (method !== 'GET' && options.body && typeof options.body === 'object') {
+        fetchOptions.body = JSON.stringify(options.body);
     }
 
     try {
-      const r = await fetch(finalUrl);
+      console.log(`[Reports API] Fetching: ${method} ${finalUrl}`);
+      const r = await fetch(finalUrl, fetchOptions);
       const tx = await r.text();
       
       const result = { 
@@ -225,13 +255,14 @@ function initReportGeneration() {
       };
 
       if (!r.ok) {
-        console.error(`[Reports API] Error Response: ${tx.substring(0, 200)}`);
+        console.error(`[Reports API] Error Response (${r.status}): ${tx.substring(0, 200)}`);
       }
       
       return result;
     } catch (error) {
       console.error(`[Reports API] Network/Request Error:`, error);
-      throw error;
+      // Return a failed result structure instead of throwing, so Promise.allSettled can handle it
+      return { ok: false, status: 0, error: error.message }; 
     }
   }
 
@@ -259,70 +290,101 @@ function initReportGeneration() {
     showLoadingState();
     
     try {
-      const endpoint = reportType === 'summary' 
-        ? '/v1/ticket_service/get_system_dashboard_data' 
-        : '/v1/ticket_service/get_tickets_list_for_dashboard';
+      // Correct endpoints matching dashboard.js
+      const ticketEndpoint = reportType === 'summary' 
+        ? '/api/tickets/get_system_dashboard_data' 
+        : '/api/tickets/get_tickets_list_for_dashboard';
       
-      const params = {
+      const ticketPayload = {
         start_date: start,
         end_date: end
       };
 
-      const result = await fetchReportService(endpoint, params);
+      // Fetch all data in parallel with Promise.allSettled
+      const results = await Promise.allSettled([
+        fetchReportService(ticketEndpoint, { method: 'POST', body: ticketPayload }),
+        fetchReportService('/v1/organization_service/get_all_organizations'),
+        fetchReportService('/api/users')
+      ]);
+
+      const ticketResult = results[0].status === 'fulfilled' ? results[0].value : { ok: false };
+      const orgResult = results[1].status === 'fulfilled' ? results[1].value : { ok: false };
+      const userResult = results[2].status === 'fulfilled' ? results[2].value : { ok: false };
       
-      if (!result.ok) {
-        throw new Error(`Server returned ${result.status}`);
+      if (!ticketResult.ok) {
+        console.error('Ticket fetch failed:', ticketResult);
       }
 
-      const data = result.json;
-      
-      if (reportType === 'summary') {
-          let processed = data.success !== undefined ? data.data : data;
-          if (processed.analytics) processed = processed.analytics;
-          
-          reportData = {
-              open_tickets: processed.open_tickets ?? processed.open ?? 0,
-              in_progress_tickets: processed.in_progress_tickets ?? processed.in_progress ?? 0,
-              resolved_tickets: processed.resolved_tickets ?? processed.resolved ?? 0,
-              closed_tickets: processed.closed_tickets ?? processed.closed ?? 0,
-              total_tickets: processed.total_tickets ?? processed.total ?? 0,
-              by_priority: processed.by_priority || []
-          };
-      } else {
-          const tickets = Array.isArray(data) ? data : (data.tickets || data.data || []);
-          
-          const stats = {
-              open: 0,
-              in_progress: 0,
-              resolved: 0,
-              closed: 0,
-              total: tickets.length,
-              by_priority: {}
-          };
-          
-          tickets.forEach(t => {
-              const status = String(t.task_status || t.status_name || '').toLowerCase();
-              if (status.includes('open')) stats.open++;
-              else if (status.includes('progress')) stats.in_progress++;
-              else if (status.includes('resolved')) stats.resolved++;
-              else if (status.includes('closed')) stats.closed++;
+      // Initialize reportData structure
+      reportData = {
+          open_tickets: 0, in_progress_tickets: 0, resolved_tickets: 0, closed_tickets: 0, total_tickets: 0,
+          org_count: 0, active_org_count: 0, user_count: 0,
+          organizations: [], users: [], tickets: [], by_priority: []
+      };
+
+      // Process Ticket Data
+      if (ticketResult.ok) {
+          const data = ticketResult.json;
+          if (reportType === 'summary') {
+              let processed = data.success !== undefined ? data.data : data;
+              // Handle nested 'data' or 'analytics' if present
+              if (processed.analytics) processed = processed.analytics;
               
-              const priority = String(t.priority_name || t.task_priority || 'Low').toLowerCase();
-              stats.by_priority[priority] = (stats.by_priority[priority] || 0) + 1;
-          });
-          
-          reportData = {
-              open_tickets: stats.open,
-              in_progress_tickets: stats.in_progress,
-              resolved_tickets: stats.resolved,
-              closed_tickets: stats.closed,
-              total_tickets: stats.total,
-              tickets: tickets,
-              by_priority: Object.entries(stats.by_priority).map(([name, count]) => ({
+              reportData.open_tickets = processed.open_tickets ?? processed.open ?? 0;
+              reportData.in_progress_tickets = processed.in_progress_tickets ?? processed.in_progress ?? 0;
+              reportData.resolved_tickets = processed.resolved_tickets ?? processed.resolved ?? 0;
+              reportData.closed_tickets = processed.closed_tickets ?? processed.closed ?? 0;
+              reportData.total_tickets = processed.total_tickets ?? processed.total ?? 0;
+              reportData.by_priority = processed.by_priority || [];
+          } else {
+              const tickets = Array.isArray(data) ? data : (data.tickets || data.data || []);
+              reportData.tickets = tickets;
+              reportData.total_tickets = tickets.length;
+              
+              const stats = { open: 0, in_progress: 0, resolved: 0, closed: 0, by_priority: {} };
+              
+              tickets.forEach(t => {
+                  const status = String(t.task_status || t.status_name || '').toLowerCase();
+                  if (status.includes('open')) stats.open++;
+                  else if (status.includes('progress')) stats.in_progress++;
+                  else if (status.includes('resolved')) stats.resolved++;
+                  else if (status.includes('closed')) stats.closed++;
+                  
+                  const priority = String(t.priority_name || t.task_priority || 'Low').toLowerCase();
+                  stats.by_priority[priority] = (stats.by_priority[priority] || 0) + 1;
+              });
+              
+              reportData.open_tickets = stats.open;
+              reportData.in_progress_tickets = stats.in_progress;
+              reportData.resolved_tickets = stats.resolved;
+              reportData.closed_tickets = stats.closed;
+              reportData.by_priority = Object.entries(stats.by_priority).map(([name, count]) => ({
                   priority_name: name.charAt(0).toUpperCase() + name.slice(1),
                   count: count
-              }))
-          };
+              }));
+          }
+      }
+
+      // Process Organization Data
+      if (orgResult.ok) {
+          const orgData = orgResult.json || [];
+          const organizations = Array.isArray(orgData) ? orgData : (orgData.data || []);
+          reportData.organizations = organizations;
+          reportData.org_count = organizations.length;
+          reportData.active_org_count = organizations.filter(o => o.is_active).length;
+      }
+
+      // Process User Data
+      if (userResult.ok) {
+          const userData = userResult.json || [];
+          let users = [];
+          if (Array.isArray(userData)) users = userData;
+          else if (userData.users && Array.isArray(userData.users)) users = userData.users;
+          else if (userData.content && Array.isArray(userData.content)) users = userData.content;
+          else if (userData.data && Array.isArray(userData.data)) users = userData.data;
+          
+          reportData.users = users;
+          reportData.user_count = users.length;
       }
       
       updateReportPreview();
@@ -361,9 +423,9 @@ function initReportGeneration() {
   // UPDATE PREVIEW
   // ============================================
   async function updateReportPreview() {
-    const previewArea = document.getElementById('reportPreviewArea');
     if (!reportData) {
-      if (!document.getElementById('scopeTickets')?.checked) {
+      const ticketsScope = document.getElementById('scopeTickets');
+      if (ticketsScope && !ticketsScope.checked) {
         showNoScopeState();
       } else {
         fetchReportData();
@@ -375,8 +437,9 @@ function initReportGeneration() {
     const titleEl = document.getElementById('previewReportTitle');
     const updateTimeEl = document.getElementById('previewUpdateTime');
     
-    titleEl.textContent = type === 'summary' ? 'Executive Summary Report' : 'Detailed Analysis Report';
-    updateTimeEl.textContent = new Date().toLocaleTimeString();
+    // Check if title elements exist before setting textContent
+    if (titleEl) titleEl.textContent = type === 'summary' ? 'Executive Summary Report' : 'Detailed Analysis Report';
+    if (updateTimeEl) updateTimeEl.textContent = new Date().toLocaleTimeString();
 
     try {
         if (type === 'summary') {
@@ -390,13 +453,18 @@ function initReportGeneration() {
   }
 
   function renderSummaryView() {
-    const previewArea = document.getElementById('reportPreviewArea');
+    const previewArea = getPreviewContainer();
+    if (!previewArea) return;
+    
     const open = reportData.open_tickets ?? 0;
     const inProgress = reportData.in_progress_tickets ?? 0;
     const resolved = reportData.resolved_tickets ?? 0;
     const closed = reportData.closed_tickets ?? 0;
     const total = reportData.total_tickets ?? (open + inProgress + resolved + closed);
-    const activeOrgs = document.getElementById('org_count')?.textContent || '0';
+    
+    const totalOrgs = reportData.org_count || 0;
+    const activeOrgs = reportData.active_org_count || 0;
+    const totalUsers = reportData.user_count || 0;
 
     previewArea.innerHTML = `
       <div class="text-center mb-5 pb-4 border-bottom">
@@ -411,31 +479,44 @@ function initReportGeneration() {
       </div>
 
       <div class="row g-4 mb-5">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="stat-card-sm glass-card p-4 text-center h-100">
             <div class="stat-icon-sm bg-primary bg-opacity-10 text-primary rounded-circle p-3 mx-auto mb-3">
               <i class="bi bi-ticket-perforated fs-4"></i>
             </div>
             <div class="small text-muted text-uppercase mb-1">Total Tickets</div>
             <h2 class="fw-bold mb-2 text-primary">${total}</h2>
+            <div class="small text-muted">${inProgress} in progress</div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="stat-card-sm glass-card p-4 text-center h-100">
             <div class="stat-icon-sm bg-success bg-opacity-10 text-success rounded-circle p-3 mx-auto mb-3">
               <i class="bi bi-buildings fs-4"></i>
             </div>
             <div class="small text-muted text-uppercase mb-1">Organizations</div>
             <h2 class="fw-bold mb-2 text-success">${activeOrgs}</h2>
+            <div class="small text-muted">of ${totalOrgs} total</div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+          <div class="stat-card-sm glass-card p-4 text-center h-100">
+            <div class="stat-icon-sm bg-info bg-opacity-10 text-info rounded-circle p-3 mx-auto mb-3">
+              <i class="bi bi-people fs-4"></i>
+            </div>
+            <div class="small text-muted text-uppercase mb-1">Users</div>
+            <h2 class="fw-bold mb-2 text-info">${totalUsers}</h2>
+            <div class="small text-muted">Active Participants</div>
+          </div>
+        </div>
+        <div class="col-md-3">
           <div class="stat-card-sm glass-card p-4 text-center h-100">
             <div class="stat-icon-sm bg-warning bg-opacity-10 text-warning rounded-circle p-3 mx-auto mb-3">
-              <i class="bi bi-hourglass-split fs-4"></i>
+              <i class="bi bi-check-circle fs-4"></i>
             </div>
-            <div class="small text-muted text-uppercase mb-1">In Progress</div>
-            <h2 class="fw-bold mb-2 text-warning">${inProgress}</h2>
+            <div class="small text-muted text-uppercase mb-1">Resolution</div>
+            <h2 class="fw-bold mb-2 text-warning">${resolved + closed}</h2>
+            <div class="small text-muted">Tickets Closed</div>
           </div>
         </div>
       </div>
@@ -454,13 +535,19 @@ function initReportGeneration() {
   }
 
   function renderDetailedView() {
-    const previewArea = document.getElementById('reportPreviewArea');
+    const previewArea = getPreviewContainer();
+    if (!previewArea) return;
+    
     const open = reportData.open_tickets ?? 0;
     const inProgress = reportData.in_progress_tickets ?? 0;
     const resolved = reportData.resolved_tickets ?? 0;
     const closed = reportData.closed_tickets ?? 0;
     const total = reportData.total_tickets ?? (open + inProgress + resolved + closed);
     const totalCount = total || 1;
+    
+    const orgs = reportData.organizations || [];
+    const users = reportData.users || [];
+    const tickets = reportData.tickets || [];
 
     const stats = [
       { name: 'Open', count: open, color: 'primary', icon: 'bi-inbox' },
@@ -476,6 +563,7 @@ function initReportGeneration() {
         <p class="text-muted small">Generated on <span class="fw-semibold">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span></p>
       </div>
 
+      <!-- Metrics Section -->
       <div class="mb-5">
         <h5 class="fw-bold mb-3"><i class="bi bi-table me-2 text-primary"></i>Metrics Breakdown</h5>
         <div class="glass-card rounded-3 overflow-hidden">
@@ -512,6 +600,70 @@ function initReportGeneration() {
         </div>
       </div>
 
+      <!-- Organizations Scope -->
+      <div class="mb-5">
+        <h5 class="fw-bold mb-3"><i class="bi bi-buildings me-2 text-success"></i>Organizations Scope (${orgs.length})</h5>
+        <div class="glass-card rounded-3 p-3" style="max-height: 300px; overflow-y: auto;">
+            ${orgs.length > 0 ? `
+            <table class="table table-sm table-hover">
+                <thead><tr><th>Name</th><th>Code</th><th>Status</th></tr></thead>
+                <tbody>
+                    ${orgs.map(o => `
+                        <tr>
+                            <td>${o.org_name || 'N/A'}</td>
+                            <td>${o.org_code || '-'}</td>
+                            <td><span class="badge ${o.is_active ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'}">${o.is_active ? 'Active' : 'Inactive'}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ` : '<p class="text-muted text-center my-3">No organizations found</p>'}
+        </div>
+      </div>
+
+      <!-- Users Participation -->
+      <div class="mb-5">
+        <h5 class="fw-bold mb-3"><i class="bi bi-people me-2 text-info"></i>Users Participation (${users.length})</h5>
+        <div class="glass-card rounded-3 p-3" style="max-height: 300px; overflow-y: auto;">
+             ${users.length > 0 ? `
+            <table class="table table-sm table-hover">
+                <thead><tr><th>User</th><th>Role</th><th>Status</th></tr></thead>
+                <tbody>
+                    ${users.map(u => `
+                        <tr>
+                            <td>${u.username || u.full_name || 'User'}</td>
+                            <td><span class="badge bg-light text-dark border">${(u.role || 'User').toUpperCase()}</span></td>
+                            <td><span class="badge ${u.status === 'ACTIVE' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'}">${u.status || 'Unknown'}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            ` : '<p class="text-muted text-center my-3">No users found</p>'}
+        </div>
+      </div>
+
+      <!-- Ticket Details -->
+      ${tickets.length > 0 ? `
+      <div class="mb-5">
+        <h5 class="fw-bold mb-3"><i class="bi bi-ticket-detailed me-2 text-warning"></i>Ticket Details (${tickets.length})</h5>
+        <div class="glass-card rounded-3 p-3" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-sm table-hover">
+                <thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Priority</th></tr></thead>
+                <tbody>
+                    ${tickets.map(t => `
+                        <tr>
+                            <td>#${t.ticket_id || t.id}</td>
+                            <td>${t.task_name || t.subject || 'No Subject'}</td>
+                            <td><span class="badge bg-soft-primary text-primary">${t.task_status || t.status_name}</span></td>
+                            <td><span class="badge bg-soft-secondary text-secondary">${t.task_priority || t.priority_name}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+      </div>
+      ` : ''}
+
       <div class="mb-4">
         <h5 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Visual Analysis</h5>
         <div class="chart-preview-container glass-card rounded-3 p-4">
@@ -544,111 +696,123 @@ function initReportGeneration() {
       yAxis: { type: 'value' },
       series: [{
         data: chartData.map(d => ({ value: d.value, itemStyle: { color: d.color } })),
-        type: 'bar', barWidth: '50%', itemStyle: { borderRadius: [8, 8, 0, 0] },
-        label: { show: true, position: 'top' }
+        type: 'bar',
+        barWidth: '50%',
+        itemStyle: { borderRadius: [4, 4, 0, 0] }
       }]
     });
   }
 
+  // Helper to safely get preview container
+  function getPreviewContainer() {
+    const el = document.getElementById('reportPreviewContent');
+    if (!el) {
+        console.error('[Reports] Critical: #reportPreviewContent element missing from DOM.');
+    }
+    return el;
+  }
+
   function showLoadingState() {
-    document.getElementById('reportPreviewArea').innerHTML = `
-      <div class="text-center py-5">
-        <div class="spinner-border text-primary mb-3" role="status"></div>
-        <p class="text-muted">Loading report data...</p>
-      </div>
-    `;
-  }
-
-  function showNoScopeState() {
-    document.getElementById('reportPreviewArea').innerHTML = `
-      <div class="text-center py-5">
-        <i class="bi bi-info-circle text-primary fs-1 mb-3"></i>
-        <h5>No Data Scope Selected</h5>
-        <p class="text-muted">Please select "Tickets & Tasks" to view analytics.</p>
-      </div>
-    `;
-  }
-
-  function showErrorState(message) {
-    document.getElementById('reportPreviewArea').innerHTML = `
-      <div class="text-center py-5">
-        <i class="bi bi-exclamation-triangle text-danger fs-1 mb-3"></i>
-        <p class="text-danger fw-semibold">Error loading report data</p>
-        <p class="text-muted small">${message || 'Please try again'}</p>
-        <button id="retryReportFetch" class="btn btn-sm btn-outline-primary mt-3">Retry</button>
-      </div>
-    `;
-    document.getElementById('retryReportFetch')?.addEventListener('click', () => fetchReportData());
-  }
-
-  async function exportToPdf() {
-    if (!window.jspdf?.jsPDF || !reportData) {
-      if (window.Toastify) Toastify({ text: "Export failed", style: { background: "#ef4444" } }).showToast();
-      return;
-    }
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const type = document.getElementById('reportType').value;
+    const previewArea = getPreviewContainer();
+    if (!previewArea) return;
     
-    doc.setFontSize(24);
-    doc.text('ANALYTICS REPORT', 105, 20, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 30, { align: 'center' });
+    previewArea.innerHTML = `
+      <div class="text-center py-5 my-5">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h5 class="text-muted fw-normal">Generating Report Preview...</h5>
+        <p class="text-muted small">Fetching latest data from system...</p>
+      </div>
+    `;
+  }
 
-    const open = reportData.open_tickets ?? 0;
-    const inProgress = reportData.in_progress_tickets ?? 0;
-    const resolved = reportData.resolved_tickets ?? 0;
-    const closed = reportData.closed_tickets ?? 0;
-    const total = reportData.total_tickets ?? (open + inProgress + resolved + closed);
+  function showErrorState(msg) {
+    const previewArea = getPreviewContainer();
+    if (!previewArea) return;
+    
+    previewArea.innerHTML = `
+      <div class="text-center py-5 my-5">
+        <div class="text-danger mb-3"><i class="bi bi-exclamation-triangle fs-1"></i></div>
+        <h5 class="text-danger">Failed to Generate Report</h5>
+        <p class="text-muted">${msg}</p>
+        <button class="btn btn-sm btn-outline-primary mt-3" onclick="fetchReportData()">
+            <i class="bi bi-arrow-clockwise me-2"></i>Retry
+        </button>
+      </div>
+    `;
+  }
+  
+  function showNoScopeState() {
+    const previewArea = getPreviewContainer();
+    if (!previewArea) return;
+    
+    previewArea.innerHTML = `
+      <div class="text-center py-5 my-5">
+        <div class="text-muted mb-3"><i class="bi bi-info-circle fs-1"></i></div>
+        <h5 class="text-muted">No Data Selected</h5>
+        <p class="text-muted small">Please select "Include Ticket Data" or other scopes to view the report.</p>
+      </div>
+    `;
+  }
 
-    if (window.jspdf.plugin?.autotable) {
-      doc.autoTable({
-        startY: 50,
-        head: [['Status', 'Count', 'Distribution']],
-        body: [
-          ['Open', open, `${Math.round((open / total * 100) || 0)}%`],
-          ['In Progress', inProgress, `${Math.round((inProgress / total * 100) || 0)}%`],
-          ['Resolved', resolved, `${Math.round((resolved / total * 100) || 0)}%`],
-          ['Closed', closed, `${Math.round((closed / total * 100) || 0)}%`]
-        ]
-      });
+  // Placeholder functions for export
+  function exportToPdf() {
+    if (!reportData) return;
+    
+    // Simple PDF generation logic or call to library
+    if (window.jspdf) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(20);
+        doc.text("System Analytics Report", 20, 20);
+        
+        doc.setFontSize(12);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
+        
+        doc.text(`Total Tickets: ${reportData.total_tickets}`, 20, 50);
+        doc.text(`Open: ${reportData.open_tickets}`, 20, 60);
+        doc.text(`In Progress: ${reportData.in_progress_tickets}`, 20, 70);
+        doc.text(`Resolved: ${reportData.resolved_tickets}`, 20, 80);
+        doc.text(`Closed: ${reportData.closed_tickets}`, 20, 90);
+        
+        doc.save("report.pdf");
+    } else {
+        alert("PDF export library not loaded.");
     }
-
-    doc.save(`report-${type}-${Date.now()}.pdf`);
   }
 
   function exportToCsv() {
     if (!reportData) return;
-    const type = document.getElementById('reportType').value;
-    const open = reportData.open_tickets ?? 0;
-    const inProgress = reportData.in_progress_tickets ?? 0;
-    const resolved = reportData.resolved_tickets ?? 0;
-    const closed = reportData.closed_tickets ?? 0;
-    const total = reportData.total_tickets ?? (open + inProgress + resolved + closed);
-
-    let csv = "Status,Count,Percentage\n";
-    csv += `Open,${open},${Math.round((open / total * 100) || 0)}%\n`;
-    csv += `In Progress,${inProgress},${Math.round((inProgress / total * 100) || 0)}%\n`;
-    csv += `Resolved,${resolved},${Math.round((resolved / total * 100) || 0)}%\n`;
-    csv += `Closed,${closed},${Math.round((closed / total * 100) || 0)}%\n`;
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `report-${type}.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Simple CSV export implementation
+    const rows = [
+        ["Metric", "Count"],
+        ["Total Tickets", reportData.total_tickets],
+        ["Open", reportData.open_tickets],
+        ["In Progress", reportData.in_progress_tickets],
+        ["Resolved", reportData.resolved_tickets],
+        ["Closed", reportData.closed_tickets]
+    ];
+    
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + rows.map(e => e.join(",")).join("\n");
+        
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "report_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', () => {
-    initReportGeneration();
-});
-
-// Also expose to window in case dashboard.js needs to call it
+// Expose init function globally
 window.initReportGeneration = initReportGeneration;
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initReportGeneration);
+} else {
+    // DOM already ready, initialize immediately
+    initReportGeneration();
+}

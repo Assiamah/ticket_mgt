@@ -417,7 +417,7 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>window.CONTEXT_PATH='${pageContext.request.contextPath}';</script>
 <script src="${pageContext.request.contextPath}/assets/js/dashboard.js"></script>
-<script src="${pageContext.request.contextPath}/assets/js/report_modal.js"></script>
+<script src="${pageContext.request.contextPath}/assets/js/report_modal.js?v=1.1"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Enhanced date display

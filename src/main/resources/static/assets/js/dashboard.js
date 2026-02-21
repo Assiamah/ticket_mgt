@@ -681,7 +681,7 @@
 
                     series: [{
                         type: 'pie',
-                        radius: ['55%', '80%'],
+                        radius: ['50%', '50%'],
                         center: ['50%', '50%'],
                         avoidLabelOverlap: true,
                         itemStyle: {
@@ -724,7 +724,7 @@
                     }],
                     graphic: [{
                         type: 'text',
-                        left: 'center',
+                        left: '75%',
                         top: '45%',
                         style: {
                             text: `Total\n${total}`,
