@@ -174,7 +174,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-number" id="my_assigned_total">0</div>
-                        <div class="stat-label">My Tasks</div>
+                        <div class="stat-label">Assigned tickets</div>
                         <div class="progress mt-2">
                             <div class="progress-bar bg-primary" style="width: 60%"></div>
                         </div>
@@ -293,21 +293,20 @@
                             <i class="bi bi-pie-chart me-2"></i>
                             Status Distribution
                         </h4>
-                        <div class="time-filter">
+                        <!-- <div class="time-filter">
                             <select class="form-select form-select-sm">
                                 <option>This Week</option>
                                 <option selected>This Month</option>
                                 <option>This Quarter</option>
                                 <option>This Year</option>
                             </select>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="chart-card-body">
-                        <div id="status_pie_chart" style="width: 100%; height: 100%;"></div>
+                        <div id="status_pie_chart" style="width: 100%; height: 300px;"></div>
                     </div>
                     <div class="chart-card-footer">
-                        <div class="d-flex justify-content-between">
-                            <small class="text-muted">Total: <strong id="totalTickets">0</strong> tickets</small>
+                        <div class="d-flex justify-content-end">
                             <small class="text-muted">Updated: <span id="statusChartUpdate">just now</span></small>
                         </div>
                     </div>
@@ -321,14 +320,14 @@
                             <i class="bi bi-bar-chart me-2"></i>
                             Priority Breakdown
                         </h4>
-                        <div class="time-filter">
+                        <!-- <div class="time-filter">
                             <select class="form-select form-select-sm">
                                 <option>This Week</option>
                                 <option selected>This Month</option>
                                 <option>This Quarter</option>
                                 <option>This Year</option>
                             </select>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="chart-card-body">
                         <div id="priority_bar_chart" style="width: 100%; height: 100%;"></div>
@@ -366,12 +365,12 @@
                             <i class="bi bi-graph-up me-2"></i>
                             Ticket Trends Over Time
                         </h4>
-                        <div class="btn-group btn-group-sm" role="group">
+                        <!-- <div class="btn-group btn-group-sm" role="group">
                             <button type="button" class="btn btn-outline-secondary active">Week</button>
                             <button type="button" class="btn btn-outline-secondary">Month</button>
                             <button type="button" class="btn btn-outline-secondary">Quarter</button>
                             <button type="button" class="btn btn-outline-secondary">Year</button>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="chart-card-body">
                         <div id="dashboard_ticket_trend_chart" style="height: 320px;"></div>

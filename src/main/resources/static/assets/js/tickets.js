@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadedOrganizations = rows; // Save for product lookup
             
             const sel = document.getElementById('organization_id');
-            if(sel) {
+            if(sel && !sel.disabled) {
                 sel.innerHTML = '<option value="">Select Organization</option>' + 
                     rows.map(o => `<option value="${o.org_id || o.id}">${o.org_name || o.name || ''}</option>`).join('');
             }
@@ -1011,11 +1011,20 @@ document.addEventListener('DOMContentLoaded', function() {
             tooltip: { x: { format: 'dd MMM yyyy' } }
         };
 
-        if (document.querySelector("#ticketTrendChart")) {
-            if (assignedJobsCharts.trend) assignedJobsCharts.trend.updateOptions(trendOptions);
-            else {
-                assignedJobsCharts.trend = new ApexCharts(document.querySelector("#ticketTrendChart"), trendOptions);
-                assignedJobsCharts.trend.render();
+        const trendEl = document.querySelector("#ticketTrendChart");
+        if (trendEl) {
+            if (trendData.length === 0) {
+                trendEl.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted">No trend data available</div>';
+                if (assignedJobsCharts.trend) {
+                    assignedJobsCharts.trend.destroy();
+                    assignedJobsCharts.trend = null;
+                }
+            } else {
+                if (assignedJobsCharts.trend) assignedJobsCharts.trend.updateOptions(trendOptions);
+                else {
+                    assignedJobsCharts.trend = new ApexCharts(trendEl, trendOptions);
+                    assignedJobsCharts.trend.render();
+                }
             }
         }
 
@@ -1034,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'In Progress': '#f59e0b', // Amber (Warning)
             'On Hold': '#8b5cf6',     // Violet
             'Resolved': '#3b82f6',    // Blue (Primary)
-            'Closed': '#ef4444'       // Red (Danger)
+            'Closed': '#64748b'       // Slate (Inactive)
         };
         
         // Prepare series and labels based on what exists in data + standard order

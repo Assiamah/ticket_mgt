@@ -109,8 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="javascript:void(0)" onclick="blockOrg('${data.org_id}')">
-                                        <i class="bi bi-slash-circle"></i> Block
+                                    <a class="dropdown-item d-flex align-items-center gap-2 ${data.is_active === true || data.is_active === 'true' || data.is_active === 1 ? 'text-danger' : 'text-success'}" href="javascript:void(0)" onclick="${data.is_active === true || data.is_active === 'true' || data.is_active === 1 ? 'blockOrg' : 'unblockOrg'}('${data.org_id}')">
+                                        <i class="bi ${data.is_active === true || data.is_active === 'true' || data.is_active === 1 ? 'bi-slash-circle' : 'bi-check-circle'}"></i> ${data.is_active === true || data.is_active === 'true' || data.is_active === 1 ? 'Block' : 'Unblock'}
                                     </a>
                                 </li>
                             </ul>
@@ -407,6 +407,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Unblock Organization
+    window.unblockOrg = async function(orgId) {
+        if (!confirm('Are you sure you want to activate this organization?')) return;
+
+        try {
+            const response = await fetch(ORG_API + '/unblock_organization', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ org_id: orgId })
+            });
+            if (response.ok) {
+                showNotification('Organization activated successfully', 'success');
+                loadOrgs();
+            } else {
+                showNotification('Failed to activate organization', 'error');
+            }
+        } catch (error) {
+            console.error('Error activating organization:', error);
+            showNotification('Error activating organization', 'error');
+        }
+    };
+
     // View Organization
     window.viewOrg = async function(orgId) {
          try {
@@ -477,6 +499,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 assignBtn.onclick = () => {
                     bootstrap.Modal.getInstance(document.getElementById('viewOrgModal')).hide();
                     openAssignProductsModal(orgId, org.org_name, org.product_ids);
+                };
+            }
+
+            const toggleBtn = document.getElementById('toggleStatusBtn');
+            if (toggleBtn) {
+                const isOrgActive = org.is_active === true || org.is_active === 'true' || org.is_active === 1;
+                toggleBtn.innerHTML = isOrgActive ? '<i class="bi bi-slash-circle me-2"></i> Block Organization' : '<i class="bi bi-check-circle me-2"></i> Activate Organization';
+                toggleBtn.className = isOrgActive ? 'btn btn-outline-danger' : 'btn btn-outline-success';
+                toggleBtn.onclick = () => {
+                    bootstrap.Modal.getInstance(document.getElementById('viewOrgModal')).hide();
+                    if (isOrgActive) blockOrg(orgId);
+                    else unblockOrg(orgId);
                 };
             }
             

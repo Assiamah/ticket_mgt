@@ -10,7 +10,7 @@
         MAX_CATEGORIES_DISPLAY: 12,
         DEFAULT_DATE_RANGE_DAYS: 30, // Default to 1 month
         LOG_PREFIX: '[Dashboard]',
-        LOG_VERBOSE: true // Set to false to reduce logging in production
+        LOG_VERBOSE: false // Set to false to reduce logging in production
     };
 
     // Enhanced logging utility
@@ -279,9 +279,14 @@
                 return { ok: false, status: 429 };
             }
 
-            // Add date range query parameters to GET requests
-            const dateParams = dateFilter.getQueryParams();
-            const url = `${CONFIG.API_BASE}${endpoint}${endpoint.includes('?') ? dateParams : (dateParams ? `?${dateParams.substring(1)}` : '')}`;
+            // Add date range query parameters only to GET requests
+            const method = (options.method || 'GET').toUpperCase();
+            let url = `${CONFIG.API_BASE}${endpoint}`;
+            
+            if (method === 'GET') {
+                const dateParams = dateFilter.getQueryParams();
+                url += endpoint.includes('?') ? dateParams : (dateParams ? `?${dateParams.substring(1)}` : '');
+            }
             
             const config = {
                 credentials: 'include',
@@ -344,12 +349,21 @@
                     if (response.status >= 500) {
                         state.flags.backoffUntil = Date.now() + CONFIG.BACKOFF_DURATION;
                     }
-                    const error = new Error(`API error: ${response.status}`);
+                    // Try to read error body if possible
+                    let errorMessage = `API error: ${response.status}`;
+                    try {
+                        if (json && (json.message || json.error)) {
+                            errorMessage = json.message || json.error;
+                        }
+                    } catch (ignore) {}
+
+                    const error = new Error(errorMessage);
                     log.error('api:fetch:error', {
                         requestId,
                         endpoint,
                         status: response.status,
-                        error: error.message
+                        error: errorMessage,
+                        body: json
                     });
                     throw error;
                 }
@@ -443,7 +457,9 @@
         processAnalyticsData(rawData) {
             // Handle new data structure from web service - check if it has a success wrapper
             const responseData = rawData?.success !== undefined ? rawData.data : rawData;
-            const data = responseData?.analytics || responseData?.stats || responseData?.data || responseData || {};
+            
+            // Handle wrapper structure: stats -> analytics
+            const data = responseData?.stats?.analytics || responseData?.analytics || responseData?.stats || responseData?.data || responseData || {};
             
             // Extract priority breakdown if available in new format
             let byPriority = [];
@@ -653,47 +669,28 @@
                 const total = data.open + data.inProgress + data.resolved + data.closed;
 
                 const option = {
-                    backgroundColor: 'transparent',
                     tooltip: {
                         trigger: 'item',
-                        formatter: '{b}: {c} ({d}%)',
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        borderColor: 'rgba(99, 102, 241, 0.1)',
-                        textStyle: { color: '#1e293b' },
-                        extraCssText: 'box-shadow: 0 8px 32px rgba(0,0,0,0.12); border-radius: 12px; padding: 12px;'
+                        formatter: '{b}: {c} ({d}%)'
                     },
-
                     series: [{
                         type: 'pie',
-                        radius: ['55%', '80%'],
-                        center: ['40%', '50%'],
-                        avoidLabelOverlap: true,
+                        radius: ['45%', '70%'],
+                        avoidLabelOverlap: false,
                         itemStyle: {
-                            borderRadius: 12,
-                            borderColor: 'white',
-                            borderWidth: 3,
-                            shadowColor: 'rgba(0, 0, 0, 0.1)',
-                            shadowBlur: 8
+                            borderRadius: 8,
+                            borderColor: '#fff',
+                            borderWidth: 2
                         },
                         label: {
                             show: true,
-                            formatter: '{b}\n{d}%',
-                            color: '#64748b',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            lineHeight: 18
+                            formatter: '{b}: {c}'
                         },
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 14,
-                                fontWeight: 'bold',
-                                color: '#1e293b'
-                            },
-                            itemStyle: {
-                                shadowBlur: 16,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0,0,0,0.2)'
+                                fontSize: '14',
+                                fontWeight: 'bold'
                             }
                         },
                         data: [
@@ -705,19 +702,6 @@
                         animationType: 'scale',
                         animationEasing: 'elasticOut',
                         animationDelay: (idx) => idx * 150
-                    }],
-                    graphic: [{
-                        type: 'text',
-                        left: 'center',
-                        top: '45%',
-                        style: {
-                            text: `Total\n${total}`,
-                            fill: '#1e293b',
-                            fontSize: 14,
-                            fontWeight: 'bold',
-                            textAlign: 'center',
-                            lineHeight: 24
-                        }
                     }]
                 };
 
@@ -1111,10 +1095,29 @@
             ui.showLoading();
 
             try {
-                // Fetch data in parallel using new endpoints
-                const [dashboardDataResponse, ticketsListResponse] = await api.fetchAll([
-                    '/get_system_dashboard_data',
-                    '/get_tickets_list_for_dashboard'
+                // Prepare request payload with current filters
+                const payload = {
+                    start_date: state.filters.dateRange.start,
+                    end_date: state.filters.dateRange.end
+                };
+
+                const requestOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                };
+
+                log.info('data:load:start', {
+                    payload,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Fetch data in parallel using new endpoints via POST
+                const [dashboardDataResponse, ticketsListResponse] = await Promise.all([
+                    api.fetch('/get_system_dashboard_data', requestOptions),
+                    api.fetch('/get_tickets_list_for_dashboard', requestOptions)
                 ]);
 
                 // Process dashboard data (contains organizations)
@@ -1252,6 +1255,14 @@
                 // Cache DOM elements
                 cacheElements();
                 log.debug('init:cache-elements-complete');
+
+                // Verify if we are on the dashboard page
+                // If key dashboard elements (charts) are missing, we assume we are on another page
+                // and should not run the dashboard logic to avoid errors and unnecessary API calls.
+                if (!state.elements.status_pie_chart && !state.elements.dashboard_ticket_trend_chart) {
+                    log.info('init:skipped', { message: 'Dashboard elements not found - likely not on dashboard page' });
+                    return;
+                }
 
                 // Initialize date filter
                 dateFilter.init();

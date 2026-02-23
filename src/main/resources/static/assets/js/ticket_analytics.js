@@ -311,8 +311,17 @@ const TicketAnalytics = (() => {
             if (data.priority_counts) {
                 // priority_counts is an object: { critical: 0, high: 0, ... }
                 // Convert to arrays for ApexCharts
-                const categories = Object.keys(data.priority_counts).map(k => k.charAt(0).toUpperCase() + k.slice(1));
+                const categories = Object.keys(data.priority_counts).map(k => k.charAt(0).toUpperCase() + k.slice(1).toLowerCase());
                 const counts = Object.values(data.priority_counts);
+
+                const priorityColorsMap = {
+                    'Critical': '#dc2626',
+                    'High': '#ef4444',
+                    'Medium': '#f59e0b',
+                    'Low': '#10b981',
+                    'Normal': '#3b82f6'
+                };
+                const priorityColors = categories.map(c => priorityColorsMap[c] || '#6366f1');
 
                 const priorityOptions = {
                     series: [{
@@ -325,13 +334,14 @@ const TicketAnalytics = (() => {
                         toolbar: { show: false }
                     },
                     plotOptions: {
-                        bar: { borderRadius: 4, horizontal: false }
+                        bar: { borderRadius: 4, horizontal: false, distributed: true }
                     },
                     dataLabels: { enabled: false },
                     xaxis: {
                         categories: categories,
                     },
-                    colors: ['#6366f1']
+                    colors: priorityColors,
+                    legend: { show: false }
                 };
 
                 if (state.charts.priority) {
@@ -351,10 +361,21 @@ const TicketAnalytics = (() => {
                     series: data.category_distribution.map(c => c.count),
                     labels: data.category_distribution.map(c => c.name),
                     chart: {
-                        type: 'pie',
-                        height: 320
+                        type: 'donut',
+                        height: 320,
+                        toolbar: { show: false }
                     },
-                    legend: { position: 'bottom' }
+                    colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+                    plotOptions: { 
+                        pie: { 
+                            donut: { 
+                                size: '65%' 
+                            } 
+                        } 
+                    },
+                    dataLabels: { enabled: true },
+                    legend: { position: 'bottom' },
+                    stroke: { show: false }
                 };
 
                 if (state.charts.category) {

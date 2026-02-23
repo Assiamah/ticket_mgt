@@ -1,5 +1,26 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%
+    // Get user info from session
+    java.util.Map<String, Object> userInfo = (java.util.Map<String, Object>) session.getAttribute("userInfo");
+    String userRole = "";
+    String userOrgId = "";
+    String userOrgName = "";
+    
+    if (userInfo != null) {
+        userRole = (String) userInfo.get("role");
+        if (userRole == null) userRole = "";
+        
+        Object orgIdObj = userInfo.get("organization_id");
+        if (orgIdObj != null) userOrgId = String.valueOf(orgIdObj);
+        
+        Object orgNameObj = userInfo.get("organization_name");
+        if (orgNameObj != null) userOrgName = String.valueOf(orgNameObj);
+    }
+%>
+<c:set var="userRole" value="<%= userRole %>" />
+<c:set var="userOrgId" value="<%= userOrgId %>" />
+<c:set var="userOrgName" value="<%= userOrgName %>" />
 <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/tickets.css">
 <main class="app-wrapper">
     <div class="container-fluid">
@@ -355,9 +376,22 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="organization_id" class="form-label">Organization <span class="text-danger">*</span></label>
-                                <select id="organization_id" class="form-select modern-select" required>
-                                    <option value="">Select Organization</option>
-                                </select>
+                                <c:choose>
+                                    <c:when test="${userRole eq 'System Owner' or userRole eq 'Admin'}">
+                                        <select id="organization_id" class="form-select modern-select" required>
+                                            <option value="">Select Organization</option>
+                                        </select>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <!-- Locked Organization for non-admins -->
+                                        <select id="organization_id" class="form-select modern-select" required disabled>
+                                            <option value="${userOrgId}" selected>${userOrgName}</option>
+                                        </select>
+                                        <!-- Hidden input to ensure value is submitted if needed, though disabled selects usually don't submit. 
+                                             However, if the JS reads .val(), it works. If form submission relies on name, we need a hidden input. -->
+                                        <input type="hidden" id="organization_id_hidden" value="${userOrgId}">
+                                    </c:otherwise>
+                                </c:choose>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="task_subject" class="form-label">Title <span class="text-danger">*</span></label>

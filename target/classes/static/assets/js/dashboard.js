@@ -681,35 +681,22 @@
 
                     series: [{
                         type: 'pie',
-                        radius: ['50%', '50%'],
-                        center: ['50%', '50%'],
-                        avoidLabelOverlap: true,
+                        radius: ['45%', '70%'],
+                        avoidLabelOverlap: false,
                         itemStyle: {
-                            borderRadius: 12,
-                            borderColor: 'white',
-                            borderWidth: 3,
-                            shadowColor: 'rgba(0, 0, 0, 0.1)',
-                            shadowBlur: 8
+                            borderRadius: 8,
+                            borderColor: '#fff',
+                            borderWidth: 2
                         },
                         label: {
                             show: true,
-                            formatter: '{b}\n{d}%',
-                            color: '#64748b',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            lineHeight: 18
+                            formatter: '{b}: {c}'
                         },
                         emphasis: {
                             label: {
                                 show: true,
-                                fontSize: 14,
-                                fontWeight: 'bold',
-                                color: '#1e293b'
-                            },
-                            itemStyle: {
-                                shadowBlur: 16,
-                                shadowOffsetX: 0,
-                                shadowColor: 'rgba(0,0,0,0.2)'
+                                fontSize: '14',
+                                fontWeight: 'bold'
                             }
                         },
                         data: [
@@ -721,19 +708,6 @@
                         animationType: 'scale',
                         animationEasing: 'elasticOut',
                         animationDelay: (idx) => idx * 150
-                    }],
-                    graphic: [{
-                        type: 'text',
-                        left: '75%',
-                        top: '45%',
-                        style: {
-                            text: `Total\n${total}`,
-                            fill: '#1e293b',
-                            fontSize: 14,
-                            fontWeight: 'bold',
-                            textAlign: 'center',
-                            lineHeight: 24
-                        }
                     }]
                 };
 

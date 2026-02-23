@@ -507,7 +507,9 @@
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitUserForm">
+                    <button type="button" class="btn btn-secondary" id="prevUserStep" style="display:none;">Previous</button>
+                    <button type="button" class="btn btn-primary" id="nextUserStep">Next</button>
+                    <button type="button" class="btn btn-primary" id="submitUserForm" style="display:none;">
                         <i class="bi bi-plus-circle me-1"></i>
                         Create User
                     </button>
@@ -816,3 +818,71 @@
      });
  </script>
  <script src="${pageContext.request.contextPath}/assets/js/accounts.js?v=${pageContext.session.lastAccessedTime}_updated"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wizard Logic for Create User Modal
+        const stepIds = ['personal-tab', 'account-tab', 'security-tab', 'permissions-tab'];
+        let currentStepIndex = 0;
+
+        const prevBtn = document.getElementById('prevUserStep');
+        const nextBtn = document.getElementById('nextUserStep');
+        const submitBtn = document.getElementById('submitUserForm');
+        
+        // Ensure buttons exist before attaching logic
+        if (!prevBtn || !nextBtn || !submitBtn) return;
+
+        function updateWizardState() {
+            // Update Buttons
+            prevBtn.style.display = currentStepIndex > 0 ? 'inline-block' : 'none';
+            nextBtn.style.display = currentStepIndex < stepIds.length - 1 ? 'inline-block' : 'none';
+            submitBtn.style.display = currentStepIndex === stepIds.length - 1 ? 'inline-block' : 'none';
+            
+            // Note: We don't programmatically show the tab here because this function
+            // is called AFTER the tab is shown (via event listener) or when we want to switch tabs.
+        }
+
+        function switchTab(index) {
+            if (index >= 0 && index < stepIds.length) {
+                const tabEl = document.getElementById(stepIds[index]);
+                if (tabEl) {
+                    const tab = new bootstrap.Tab(tabEl);
+                    tab.show();
+                    // The 'shown.bs.tab' listener will update the state
+                }
+            }
+        }
+
+        prevBtn.addEventListener('click', function() {
+            switchTab(currentStepIndex - 1);
+        });
+
+        nextBtn.addEventListener('click', function() {
+            // Validate current step before moving (Optional)
+            // if (!validateStep(currentStepIndex)) return;
+            switchTab(currentStepIndex + 1);
+        });
+
+        // Sync state when tabs are clicked manually or switched programmatically
+        stepIds.forEach((id, index) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('shown.bs.tab', function() {
+                    currentStepIndex = index;
+                    updateWizardState();
+                });
+            }
+        });
+
+        // Reset wizard when modal opens
+        const modal = document.getElementById('addUserModal');
+        if (modal) {
+            modal.addEventListener('show.bs.modal', function() {
+                // Reset to first tab
+                switchTab(0);
+            });
+        }
+        
+        // Initial state update
+        updateWizardState();
+    });
+</script>

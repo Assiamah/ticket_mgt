@@ -143,8 +143,8 @@
             <div class="header-content">
                 <div class="row align-items-center">
                     <div class="col-lg-8">
-                        <h1 class="header-title">Hello <c:out value="${not empty userName ? userName : (not empty userInfo.name ? userInfo.name : (not empty userInfo.username ? userInfo.username : 'User'))}" /></h1>
-                        <p class="header-subtitle">Track and manage jobs assigned to your team or department</p>
+                        <h1 class="header-title">Hello, <c:out value="${not empty userInfo.full_name ? userInfo.full_name : (not empty userName ? userName : (not empty userInfo.name ? userInfo.name : (not empty userInfo.username ? userInfo.username : 'User')))}" /></h1>
+                        <p class="header-subtitle">Track and manage jobs assigned to you.</p>
                         <div class="header-badges">
                             <div class="header-badge">
                                 <i class="bi bi-briefcase"></i>
@@ -156,14 +156,14 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-4 mt-4 mt-lg-0">
+                    <!-- <div class="col-lg-4 mt-4 mt-lg-0">
                         <div class="header-info-card">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="bi bi-person-circle fs-4"></i>
                                     <div>
                                         <div class="small opacity-75">Logged In As</div>
-                                        <div class="fw-bold"><c:out value="${not empty userInfo.full_name ? userInfo.full_name : (not empty userName ? userName : (not empty userInfo.name ? userInfo.name : (not empty userInfo.username ? userInfo.username : 'User')))}" /></div>
+                                        <div class="fw-bold"><c:out value="" /></div>
                                     </div>
                                 </div>
                             </div>
@@ -174,7 +174,7 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </header>
@@ -312,14 +312,14 @@
                             <i class="bi bi-pie-chart me-2"></i>
                             Status Distribution
                         </h4>
-                        <div class="time-filter">
+                        <!-- <div class="time-filter">
                             <select class="form-select form-select-sm">
                                 <option>This Week</option>
                                 <option selected>This Month</option>
                                 <option>This Quarter</option>
                                 <option>This Year</option>
                             </select>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="chart-card-body">
                         <div id="statusPieChart" style="height: 320px;"></div>
@@ -341,14 +341,14 @@
                             <i class="bi bi-bar-chart me-2"></i>
                             Priority Breakdown
                         </h4>
-                        <div class="time-filter">
+                        <!-- <div class="time-filter">
                             <select class="form-select form-select-sm">
                                 <option>This Week</option>
                                 <option selected>This Month</option>
                                 <option>This Quarter</option>
                                 <option>This Year</option>
                             </select>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="chart-card-body">
                         <div id="priorityChart" style="height: 320px;"></div>

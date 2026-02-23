@@ -28,8 +28,6 @@ public class OrganizationRest {
     // @Autowired
     // private isAuthenticatedUtil isAuthenticatedUtil;
 
-    private String webServiceResponse = null;
-
     public OrganizationRest(WebServiceURLConfig wsURLConfig) {
         this.wsURLConfig = wsURLConfig;
     }
@@ -41,7 +39,7 @@ public class OrganizationRest {
         // \"SESSION_INVALID.\"}");
         // }
         try {
-            webServiceResponse = organizationService.loadOrganizations(wsURLConfig.getWeb_service_url_ser(),
+            String webServiceResponse = organizationService.loadOrganizations(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), "{}");
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -53,27 +51,14 @@ public class OrganizationRest {
 
     @PostMapping("/add_organization")
     public ResponseEntity<?> createOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
-        // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
-        // \"SESSION_INVALID.\"}");
-        // }
         System.out.println("DEBUG: createOrganization payload received: " + payload);
-        if (payload.containsKey("product_ids")) {
-            Object pIds = payload.get("product_ids");
-            System.out.println("DEBUG: product_ids class: " + (pIds == null ? "null" : pIds.getClass().getName()));
-            System.out.println("DEBUG: product_ids value: " + pIds);
-            if (pIds instanceof java.util.List) {
-                java.util.List<?> list = (java.util.List<?>) pIds;
-                for (int i = 0; i < list.size(); i++) {
-                     System.out.println("DEBUG: product_ids[" + i + "]: " + list.get(i) + " (type: " + (list.get(i) == null ? "null" : list.get(i).getClass().getName()) + ")");
-                }
-            }
-        }
         try {
-            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            System.out.println("DEBUG: createOrganization JSON to service: " + obj.toString());
-            webServiceResponse = organizationService.createOrganization(wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonRequest = mapper.writeValueAsString(payload);
+            System.out.println("DEBUG: createOrganization JSON to service: " + jsonRequest);
+
+            String webServiceResponse = organizationService.createOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), jsonRequest);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,13 +69,9 @@ public class OrganizationRest {
 
     @PostMapping("/block_organization")
     public ResponseEntity<?> blockOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
-        // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
-        // \"SESSION_INVALID.\"}");
-        // }
         try {
-            String orgId = (String) payload.get("org_id");
-            webServiceResponse = organizationService.blockOrganization(wsURLConfig.getWeb_service_url_ser(),
+            String orgId = String.valueOf(payload.get("org_id"));
+            String webServiceResponse = organizationService.blockOrganization(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -102,13 +83,9 @@ public class OrganizationRest {
 
     @PostMapping("/unblock_organization")
     public ResponseEntity<?> unblockOrganization(@RequestBody Map<String, Object> payload, HttpSession session) {
-        // if (!isAuthenticatedUtil.isAuthenticated(session)) {
-        // return ResponseEntity.status(401).body("{\"status\": \"error\", \"message\":
-        // \"SESSION_INVALID.\"}");
-        // }
         try {
-            String orgId = (String) payload.get("org_id");
-            webServiceResponse = organizationService.unblockOrganization(wsURLConfig.getWeb_service_url_ser(),
+            String orgId = String.valueOf(payload.get("org_id"));
+            String webServiceResponse = organizationService.unblockOrganization(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
@@ -187,9 +164,10 @@ public class OrganizationRest {
             } catch (Exception ignore) {
             }
 
-            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = organizationService.fetchArchivedTickets(wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonRequest = mapper.writeValueAsString(payload);
+            String webServiceResponse = organizationService.fetchArchivedTickets(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), jsonRequest);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
@@ -260,9 +238,10 @@ public class OrganizationRest {
             if (!payload.containsKey("p_offset"))
                 payload.put("p_offset", 0);
 
-            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            webServiceResponse = organizationService.getOrgArchivedTasks(wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonRequest = mapper.writeValueAsString(payload);
+            String webServiceResponse = organizationService.getOrgArchivedTasks(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), jsonRequest);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
@@ -285,15 +264,16 @@ public class OrganizationRest {
             if (pIds instanceof java.util.List) {
                 java.util.List<?> list = (java.util.List<?>) pIds;
                 for (int i = 0; i < list.size(); i++) {
-                     System.out.println("DEBUG: updateOrganization product_ids[" + i + "]: " + list.get(i));
+                    System.out.println("DEBUG: updateOrganization product_ids[" + i + "]: " + list.get(i));
                 }
             }
         }
         try {
-            org.codehaus.jettison.json.JSONObject obj = new org.codehaus.jettison.json.JSONObject(payload);
-            System.out.println("DEBUG: updateOrganization JSON to service: " + obj.toString());
-            webServiceResponse = organizationService.updateOrganization(wsURLConfig.getWeb_service_url_ser(),
-                    wsURLConfig.getWeb_service_url_ser_api_key(), obj.toString());
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            String jsonRequest = mapper.writeValueAsString(payload);
+            System.out.println("DEBUG: updateOrganization JSON to service: " + jsonRequest);
+            String webServiceResponse = organizationService.updateOrganization(wsURLConfig.getWeb_service_url_ser(),
+                    wsURLConfig.getWeb_service_url_ser_api_key(), jsonRequest);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
             e.printStackTrace();
@@ -309,8 +289,8 @@ public class OrganizationRest {
         // \"SESSION_INVALID.\"}");
         // }
         try {
-            String orgId = (String) payload.get("org_id");
-            webServiceResponse = organizationService.getOrganizationById(wsURLConfig.getWeb_service_url_ser(),
+            String orgId = String.valueOf(payload.get("org_id"));
+            String webServiceResponse = organizationService.getOrganizationById(wsURLConfig.getWeb_service_url_ser(),
                     wsURLConfig.getWeb_service_url_ser_api_key(), orgId);
             return ResponseEntity.ok(webServiceResponse);
         } catch (Exception e) {
